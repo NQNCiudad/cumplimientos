@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consolidado de Cumplimientos - SAIEP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .upload-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 20px;
+            background: white;
+            color: #667eea;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1em;
+            transition: all 0.3s;
+            border: 3px dashed #667eea;
+        }
+
+        .file-input-label:hover {
+            background: #f8f9fa;
+            transform: scale(1.02);
+        }
+
+        .files-loaded {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #229954;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+        }
+
+        .btn-secondary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #2980b9;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .actions {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.95em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .sucursal-col {
+            font-weight: bold;
+            color: #2c3e50;
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        .cumplimiento-excelente {
+            background: #d4edda;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .cumplimiento-bueno {
+            background: #fff3cd;
+            color: #856404;
+            font-weight: bold;
+        }
+
+        .cumplimiento-regular {
+            background: #f8d7da;
+            color: #721c24;
+            font-weight: bold;
+        }
+
+        .cumplimiento-vacio {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #95a5a6;
+        }
+
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .month-selector {
+            margin: 20px 0;
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .month-selector input {
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1.1em;
+            margin: 0 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .month-selector input:hover {
+            border-color: #764ba2;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .month-selector input:focus {
+            outline: none;
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .month-selector label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 CONSOLIDADO DE CUMPLIMIENTOS</h1>
+        <div class="subtitle">Sistema de Análisis de Proveedores por Sucursal - SAIEP</div>
+
+        <div class="upload-section">
+            <h2>📁 Cargar PDFs de Recepciones</h2>
+            <p style="margin-bottom: 15px; opacity: 0.9;">Seleccione todos los PDFs generados por el sistema de control de órdenes</p>
+            
+            <div class="file-input-wrapper">
+                <input type="file" id="pdfInput" accept=".pdf" multiple>
+                <label for="pdfInput" class="file-input-label" id="fileInputLabel">
+                    🔍 Seleccionar PDFs (puede elegir múltiples archivos)
+                </label>
+            </div>
+
+            <div id="filesLoaded" class="files-loaded" style="display: none;">
+                <strong>Archivos cargados:</strong>
+                <div id="filesList"></div>
+            </div>
+        </div>
+
+        <div class="month-selector">
+            <label>📅 Período:</label>
+            <input type="month" id="monthInput" value="">
+            <p style="margin-top: 8px; font-size: 0.9em; color: #7f8c8d;">
+                Seleccione el mes y año del reporte (ejemplo: Diciembre 2025)
+            </p>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="procesarPDFs()">🚀 Procesar y Actualizar Tabla</button>
+            <button class="btn btn-secondary" onclick="exportarExcel()" id="btnExcel" style="display: none;">📊 Exportar a Excel</button>
+            <button class="btn btn-secondary" onclick="exportarPDF()" id="btnPDF" style="display: none;">📄 Exportar a PDF</button>
+            <button class="btn btn-danger" onclick="limpiarConClave()">🗑️ Limpiar Todo (Admin)</button>
+        </div>
+        
+        <div style="text-align: center; margin: 15px 0;">
+            <p style="color: #27ae60; font-size: 0.9em; font-weight: bold;">
+                ✅ Los datos se acumulan: puedes cargar PDFs de diferentes proveedores y la tabla se va completando
+            </p>
+            <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 5px;">
+                💾 <strong>Sincronización en línea:</strong> Los datos se guardan en Google Sheets y son visibles para todos
+            </p>
+        </div>
+
+        <!-- Indicador de estado de Google Sheets -->
+        <div id="gsStatus" style="
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            font-size: 0.9em;
+            font-weight: 500;
+            border-left: 4px solid #2196f3;
+            transition: all 0.3s ease;
+        ">
+            <span id="gsIcon" style="font-size: 1.2em;">🔄</span>
+            <span id="gsText">Conectando...</span>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Procesando PDFs y calculando cumplimientos...</p>
+        </div>
+
+        <div id="statsContainer" style="display: none;">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Sucursales</div>
+                    <div class="stat-value" id="statSucursales">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Proveedores</div>
+                    <div class="stat-value" id="statProveedores">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Cumplimiento Global</div>
+                    <div class="stat-value" id="statPromedio">0%</div>
+                </div>
+            </div>
+            
+            <!-- Gráfico de cumplimiento por proveedor -->
+            <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 15px; text-align: center;">
+                    Cumplimiento por Proveedor
+                </div>
+                <canvas id="cumplimientoChart" style="max-height: 300px;"></canvas>
+            </div>
+            
+            <!-- Leyenda de colores -->
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="font-size: 1.1em; font-weight: bold; color: #2c3e50; margin-bottom: 15px;">
+                    Leyenda de Semaforización
+                </div>
+                <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 25px; height: 25px; background: #d4edda; border: 2px solid #155724; border-radius: 4px;"></div>
+                        <span style="color: #155724; font-weight: bold;">Excelente (≥ 90%)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 25px; height: 25px; background: #fff3cd; border: 2px solid #856404; border-radius: 4px;"></div>
+                        <span style="color: #856404; font-weight: bold;">Bueno (75-89%)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 25px; height: 25px; background: #f8d7da; border: 2px solid #721c24; border-radius: 4px;"></div>
+                        <span style="color: #721c24; font-weight: bold;">Regular (< 75%)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 25px; height: 25px; background: #e3f2fd; border: 2px solid #1565c0; border-radius: 4px;"></div>
+                        <span style="color: #1565c0; font-weight: bold;">RA (Reposición Asistida)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 25px; height: 25px; background: #f5f5f5; border: 2px solid #9e9e9e; border-radius: 4px;"></div>
+                        <span style="color: #9e9e9e; font-weight: bold;">N/R (No Recibe)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 25px; height: 25px; background: #e9ecef; border: 2px solid #6c757d; border-radius: 4px;"></div>
+                        <span style="color: #6c757d; font-weight: bold;">Sin datos</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tableContainer" class="table-container" style="display: none;">
+            <table id="tablaConsolidado">
+                <thead>
+                    <tr>
+                        <th>Sucursal</th>
+                        <th>CCU</th>
+                        <th>QUILMES</th>
+                        <th>COCA COLA</th>
+                        <th>DANONE</th>
+                        <th>MASTELLONE</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div style="font-size: 4em;">📋</div>
+            <h3>No hay datos cargados</h3>
+            <p>Seleccione los PDFs de recepciones para generar el consolidado de cumplimientos</p>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let datosConsolidados = {};
+        let archivosSeleccionados = [];
+
+        // SUCURSALES PRECARGADAS
+        const SUCURSALES_SISTEMA = ['006', '068', '162', '225', '226', '229', '232', '233', '235', '236', '237', '239', '240', '248', '254'];
+        
+        // SUCURSALES CON REPOSICIÓN ASISTIDA (RA) - No reciben directo de proveedor
+        const SUCURSALES_RA = {
+            'QUILMES': ['229', '233', '235', '236', '237', '248'],
+            'COCA COLA': ['225', '229', '232', '233', '235', '236', '237', '239', '248']
+        };
+        
+        // SUCURSALES QUE NO RECIBEN DE CIERTOS PROVEEDORES
+        const SUCURSALES_NO_DISPONIBLE = {
+            '254': ['CCU', 'DANONE', 'MASTELLONE']  // Sucursal 254 no recibe de estos proveedores
+        };
+
+        // CONFIGURACIÓN DE GOOGLE SHEETS
+        const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzD48MnFZFyY7I9Xq2sVGRz9xQZRLleemj4ZVjZpm4d4k--83harTGgDmjA0y7a0AjoWg/exec';
+        let sincronizacionActiva = true;
+        let ultimaSincronizacion = null;
+
+        // FUNCIONES DE GOOGLE SHEETS
+        async function cargarDatosGoogleSheets() {
+            try {
+                actualizarEstadoGS('Cargando datos...', 'loading');
+                console.log('📥 Cargando datos desde Google Sheets...');
+                
+                const response = await fetch(GOOGLE_SHEETS_URL);
+                const datos = await response.json();
+                
+                console.log(`📊 Datos recibidos: ${datos.length} filas`);
+                
+                // Convertir datos de Google Sheets a formato datosConsolidados
+                const mesSeleccionado = document.getElementById('monthInput').value;
+                console.log(`📅 Filtrando por mes: ${mesSeleccionado}`);
+                
+                datosConsolidados = {};
+                SUCURSALES_SISTEMA.forEach(suc => {
+                    datosConsolidados[suc] = {};
+                });
+                
+                let contadorDatosCargados = 0;
+                
+                datos.forEach(fila => {
+                    const sucursal = String(fila.Sucursal).padStart(3, '0');
+                    const proveedor = fila.Proveedor;
+                    const cumplimiento = fila.Cumplimiento;
+                    let mes = fila.Mes;
+                    
+                    // Si el mes es una fecha, extraer solo año-mes
+                    if (mes instanceof Date || typeof mes === 'object') {
+                        const fecha = new Date(mes);
+                        mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                    } else if (typeof mes === 'string' && mes.includes('T')) {
+                        // Si es un string de fecha ISO, convertir
+                        const fecha = new Date(mes);
+                        mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+                    }
+                    
+                    // Verificar que sea el mes seleccionado
+                    if (mes === mesSeleccionado) {
+                        if (!datosConsolidados[sucursal]) {
+                            datosConsolidados[sucursal] = {};
+                        }
+                        
+                        // Manejar valores especiales
+                        if (cumplimiento === 'RA' || cumplimiento === 'N/R') {
+                            // No guardar RA ni N/R en datosConsolidados (se calculan automáticamente)
+                        } else if (typeof cumplimiento === 'number') {
+                            datosConsolidados[sucursal][proveedor] = cumplimiento;
+                            contadorDatosCargados++;
+                        }
+                    }
+                });
+                
+                console.log(`✅ Datos cargados: ${contadorDatosCargados} registros para ${mesSeleccionado}`);
+                ultimaSincronizacion = new Date();
+                actualizarEstadoGS('Sincronizado', 'success');
+                
+                return true;
+            } catch (error) {
+                console.error('❌ Error al cargar datos:', error);
+                actualizarEstadoGS('Error de conexión', 'error');
+                return false;
+            }
+        }
+
+        async function guardarEnGoogleSheets() {
+            try {
+                actualizarEstadoGS('Guardando...', 'saving');
+                console.log('💾 Guardando en Google Sheets...');
+                
+                const mesSeleccionado = document.getElementById('monthInput').value;
+                const datosParaGuardar = [];
+                
+                // Convertir datosConsolidados a formato de Google Sheets
+                Object.keys(datosConsolidados).forEach(sucursal => {
+                    Object.keys(datosConsolidados[sucursal]).forEach(proveedor => {
+                        const cumplimiento = datosConsolidados[sucursal][proveedor];
+                        
+                        datosParaGuardar.push({
+                            Sucursal: sucursal,
+                            Proveedor: proveedor,
+                            Cumplimiento: cumplimiento,
+                            Mes: mesSeleccionado,
+                            Usuario: 'Sistema'
+                        });
+                    });
+                });
+                
+                console.log(`📤 Enviando ${datosParaGuardar.length} registros a Google Sheets`);
+                
+                // Usar GET con parámetros codificados en lugar de POST
+                const params = new URLSearchParams({
+                    action: 'save',
+                    data: JSON.stringify(datosParaGuardar)
+                });
+                
+                const fullUrl = `${GOOGLE_SHEETS_URL}?${params.toString()}`;
+                
+                const response = await fetch(fullUrl);
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ ¡DATOS GUARDADOS EXITOSAMENTE!');
+                    
+                    // Recargar datos desde Google Sheets para confirmar guardado
+                    console.log('🔄 Recargando datos desde Google Sheets...');
+                    await cargarDatosGoogleSheets();
+                    generarTabla();
+                    
+                    ultimaSincronizacion = new Date();
+                    actualizarEstadoGS('Sincronizado', 'success');
+                } else {
+                    console.error('❌ Error en respuesta:', result);
+                    actualizarEstadoGS('Error: ' + result.error, 'error');
+                    alert('❌ Error al guardar: ' + result.error);
+                }
+                
+                return result.success;
+            } catch (error) {
+                console.error('❌ Error al guardar:', error);
+                console.error('❌ Tipo de error:', error.name);
+                console.error('❌ Mensaje:', error.message);
+                actualizarEstadoGS('Error al guardar', 'error');
+                alert('❌ Error al guardar: ' + error.message);
+                return false;
+            }
+        }
+
+        async function borrarDatosGoogleSheets(mes) {
+            try {
+                actualizarEstadoGS('Borrando datos...', 'saving');
+                console.log(`🗑️ Borrando datos del mes ${mes} de Google Sheets...`);
+                
+                const params = new URLSearchParams({
+                    action: 'delete',
+                    mes: mes
+                });
+                
+                const fullUrl = `${GOOGLE_SHEETS_URL}?${params.toString()}`;
+                const response = await fetch(fullUrl);
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ Datos borrados exitosamente de Google Sheets');
+                    actualizarEstadoGS('Sincronizado', 'success');
+                    return true;
+                } else {
+                    console.error('❌ Error al borrar:', result);
+                    actualizarEstadoGS('Error al borrar', 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error al borrar datos:', error);
+                actualizarEstadoGS('Error al borrar', 'error');
+                return false;
+            }
+        }
+
+        function actualizarEstadoGS(texto, estado) {
+            const statusElement = document.getElementById('gsStatus');
+            const iconElement = document.getElementById('gsIcon');
+            const textElement = document.getElementById('gsText');
+            
+            if (!statusElement) return;
+            
+            textElement.textContent = texto;
+            
+            // Actualizar ícono según estado
+            switch(estado) {
+                case 'loading':
+                    iconElement.textContent = '🔄';
+                    statusElement.style.background = '#e3f2fd';
+                    statusElement.style.borderLeft = '4px solid #2196f3';
+                    break;
+                case 'saving':
+                    iconElement.textContent = '💾';
+                    statusElement.style.background = '#fff3e0';
+                    statusElement.style.borderLeft = '4px solid #ff9800';
+                    break;
+                case 'success':
+                    iconElement.textContent = '✅';
+                    statusElement.style.background = '#e8f5e9';
+                    statusElement.style.borderLeft = '4px solid #4caf50';
+                    break;
+                case 'error':
+                    iconElement.textContent = '⚠️';
+                    statusElement.style.background = '#ffebee';
+                    statusElement.style.borderLeft = '4px solid #f44336';
+                    break;
+            }
+        }
+
+        // Sincronización automática cada 30 segundos
+        setInterval(async () => {
+            if (sincronizacionActiva) {
+                console.log('🔄 Sincronización automática ejecutándose...');
+                await cargarDatosGoogleSheets();
+                generarTabla();
+            }
+        }, 30000);
+        console.log('✅ Sincronización automática ACTIVADA (cada 30 seg)');
+
+        // Inicializar estructura de datos con todas las sucursales
+        function inicializarSucursales() {
+            datosConsolidados = {};
+            SUCURSALES_SISTEMA.forEach(sucursal => {
+                datosConsolidados[sucursal] = {};
+            });
+        }
+
+        // Al cargar la página, inicializar
+        inicializarSucursales();
+
+        // SISTEMA DE AUTOGUARDADO
+        function autoguardar() {
+            // AUTOGUARDADO LOCAL DESACTIVADO - Ahora usamos Google Sheets
+            return;
+        }
+
+        function cargarAutoguardado() {
+            // FUNCIÓN DESACTIVADA - Ahora solo usamos Google Sheets
+            console.log('ℹ️ Autoguardado local desactivado - usando Google Sheets');
+            return;
+        }
+
+        function limpiarAutoguardado() {
+            localStorage.removeItem('consolidado_autoguardado');
+            console.log('🗑️ Autoguardado eliminado');
+        }
+
+        // Configurar selector de mes (sin restricciones - selección libre)
+        document.addEventListener('DOMContentLoaded', async function() {
+            const hoy = new Date();
+            
+            // Configurar diciembre 2025 por defecto (cuando empezó el sistema)
+            const inputMes = document.getElementById('monthInput');
+            inputMes.value = '2025-12'; // Diciembre 2025 por defecto
+            
+            // NO agregar min/max para permitir selección libre de cualquier mes/año
+            
+            console.log(`📅 Selector de mes configurado (selección libre)`);
+            
+            // Cargar datos desde Google Sheets
+            setTimeout(async () => {
+                actualizarEstadoGS('Conectando...', 'loading');
+                const cargado = await cargarDatosGoogleSheets();
+                if (cargado) {
+                    generarTabla();
+                } else {
+                    // Si falla la conexión, mostrar tabla vacía
+                    generarTabla();
+                }
+            }, 500);
+        });
+
+        document.getElementById('pdfInput').addEventListener('change', function(e) {
+            const nuevosArchivos = Array.from(e.target.files);
+            
+            // ACUMULAR archivos en lugar de reemplazar
+            nuevosArchivos.forEach(archivo => {
+                // Verificar si ya existe (evitar duplicados por nombre)
+                const existe = archivosSeleccionados.some(a => a.name === archivo.name && a.size === archivo.size);
+                if (!existe) {
+                    archivosSeleccionados.push(archivo);
+                }
+            });
+            
+            actualizarListaArchivos();
+            
+            // Cambiar texto del label
+            if (archivosSeleccionados.length > 0) {
+                document.getElementById('fileInputLabel').innerHTML = '➕ Agregar más PDFs';
+            }
+            
+            // Limpiar el input para poder seleccionar la misma carpeta de nuevo
+            e.target.value = '';
+        });
+
+        // Listener para cambio de mes - recargar datos de Google Sheets
+        document.getElementById('monthInput').addEventListener('change', async function() {
+            const mesNuevo = this.value;
+            console.log(`📅 Mes cambiado a: ${mesNuevo}, recargando datos...`);
+            
+            const cargado = await cargarDatosGoogleSheets();
+            if (cargado) {
+                generarTabla();
+            }
+        });
+
+        function actualizarListaArchivos() {
+            if (archivosSeleccionados.length > 0) {
+                document.getElementById('filesLoaded').style.display = 'block';
+                
+                let html = '<div style="max-height: 200px; overflow-y: auto; margin: 10px 0; background: white; border-radius: 8px; padding: 10px;">';
+                html += '<table style="width: 100%; color: #2c3e50;">';
+                html += '<tr style="background: #667eea; color: white;"><th style="padding: 8px; text-align: left;">Archivo</th><th style="padding: 8px; text-align: center; width: 80px;">Acción</th></tr>';
+                
+                archivosSeleccionados.forEach((archivo, index) => {
+                    html += `<tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px; color: #2c3e50;">${archivo.name}</td>
+                        <td style="padding: 8px; text-align: center;">
+                            <button onclick="eliminarArchivo(${index})" 
+                                style="background: #e74c3c; color: white; border: none; padding: 4px 12px; 
+                                       border-radius: 4px; cursor: pointer; font-size: 0.85em; transition: all 0.3s;"
+                                onmouseover="this.style.background='#c0392b'" 
+                                onmouseout="this.style.background='#e74c3c'">
+                                🗑️ Quitar
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+                
+                html += '</table></div>';
+                html += `<div style="margin-top: 10px; font-weight: bold; font-size: 1.1em; color: white;">
+                    ✅ Total: ${archivosSeleccionados.length} archivo(s) cargado(s)
+                </div>`;
+                
+                document.getElementById('filesList').innerHTML = html;
+            } else {
+                document.getElementById('filesLoaded').style.display = 'none';
+                document.getElementById('fileInputLabel').innerHTML = '🔍 Seleccionar PDFs (puede elegir múltiples archivos)';
+            }
+        }
+
+        function eliminarArchivo(index) {
+            archivosSeleccionados.splice(index, 1);
+            actualizarListaArchivos();
+            console.log(`🗑️ Archivo eliminado. Total restante: ${archivosSeleccionados.length}`);
+        }
+
+        async function procesarPDFs() {
+            if (archivosSeleccionados.length === 0) {
+                alert('⚠️ Por favor seleccione al menos un PDF');
+                return;
+            }
+
+            console.log('\n\n========================================');
+            console.log('🚀 INICIANDO PROCESAMIENTO DE PDFs');
+            console.log('========================================');
+            console.log(`Total de archivos: ${archivosSeleccionados.length}`);
+            console.log('Archivos:', archivosSeleccionados.map(f => f.name).join(', '));
+            console.log('========================================\n');
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+
+            // IMPORTANTE: NO reinicializar si ya hay datos
+            // Solo inicializar si está completamente vacío (primera vez)
+            const hayDatos = Object.keys(datosConsolidados).length > 0 && 
+                             Object.values(datosConsolidados).some(suc => Object.keys(suc).length > 0);
+            
+            if (!hayDatos) {
+                console.log('📋 Primera carga - Inicializando estructura de sucursales');
+                inicializarSucursales();
+            } else {
+                console.log('📊 Datos existentes detectados - Acumulando nuevos datos');
+            }
+
+            // Procesar nuevos PDFs (se agregan/actualizan sobre los datos existentes)
+            for (const archivo of archivosSeleccionados) {
+                await procesarUnPDF(archivo);
+            }
+
+            console.log('\n========================================');
+            console.log('✅ PROCESAMIENTO COMPLETADO');
+            console.log('========================================');
+            console.log('Datos consolidados:', JSON.stringify(datosConsolidados, null, 2));
+            console.log('========================================\n');
+
+            generarTabla();
+            
+            // Guardar en Google Sheets automáticamente
+            await guardarEnGoogleSheets();
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        async function procesarUnPDF(archivo) {
+            try {
+                console.log(`\n🔄 Cargando PDF: ${archivo.name}`);
+                const arrayBuffer = await archivo.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                let textoCompleto = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    textoCompleto += pageText + ' ';
+                }
+
+                console.log(`📄 PDF cargado: ${pdf.numPages} página(s)`);
+                extraerDatos(textoCompleto, archivo.name);
+            } catch (error) {
+                console.error(`❌ Error procesando ${archivo.name}:`, error);
+            }
+        }
+
+        function extraerDatos(texto, nombreArchivo) {
+            console.log(`\n📄 Procesando: ${nombreArchivo}`);
+            console.log(`Texto extraído (primeros 500 chars): ${texto.substring(0, 500)}`);
+            
+            // Extraer Proveedor - versión más robusta
+            let proveedor = '';
+            const matchProveedor = texto.match(/Proveedor:\s*([A-Z\s]+?)(?:\s+Sucursal|Fecha|$)/i);
+            if (matchProveedor) {
+                proveedor = matchProveedor[1].trim();
+                console.log(`   Proveedor crudo: "${proveedor}"`);
+                
+                // Normalizar nombres de proveedores
+                if (proveedor.includes('COCA')) proveedor = 'COCA COLA';
+                else if (proveedor.includes('QUILMES')) proveedor = 'QUILMES';
+                else if (proveedor.includes('DANONE')) proveedor = 'DANONE';
+                else if (proveedor.includes('MASTELLONE')) proveedor = 'MASTELLONE';
+                else if (proveedor.includes('CCU')) proveedor = 'CCU';
+                
+                console.log(`   ✓ Proveedor normalizado: "${proveedor}"`);
+            } else {
+                console.log(`   ❌ No se encontró proveedor`);
+            }
+
+            // Extraer Sucursal
+            let sucursal = '';
+            const matchSucursal = texto.match(/Sucursal:\s*(\d+)/i);
+            if (matchSucursal) {
+                sucursal = matchSucursal[1].trim();
+                console.log(`   ✓ Sucursal: ${sucursal}`);
+            } else {
+                console.log(`   ❌ No se encontró sucursal`);
+            }
+
+            // Extraer TOTALES (Pedido y Recibido)
+            // Patrones alternativos para mayor compatibilidad
+            let matchTotales = texto.match(/TOTALES?\s+(\d+)\s+(\d+)/i);
+            if (!matchTotales) {
+                // Intento alternativo: buscar "TOTA LES" (puede tener espacio)
+                matchTotales = texto.match(/TOTA\s*LES?\s+(\d+)\s+(\d+)/i);
+            }
+            
+            if (matchTotales) {
+                const pedido = parseInt(matchTotales[1]);
+                const recibido = parseInt(matchTotales[2]);
+                const cumplimiento = pedido > 0 ? Math.round((recibido / pedido) * 100) : 0;
+
+                console.log(`   ✓ TOTALES encontrados → Pedido: ${pedido}, Recibido: ${recibido}, Cumplimiento: ${cumplimiento}%`);
+
+                if (proveedor && sucursal) {
+                    // Verificar si la sucursal está en el sistema
+                    if (!SUCURSALES_SISTEMA.includes(sucursal)) {
+                        console.log(`   ⚠️ ADVERTENCIA: Sucursal ${sucursal} no está en el sistema. No se almacenará.`);
+                        return;
+                    }
+                    
+                    // Almacenar datos
+                    if (!datosConsolidados[sucursal]) {
+                        datosConsolidados[sucursal] = {};
+                    }
+                    datosConsolidados[sucursal][proveedor] = cumplimiento;
+                    console.log(`   ✅ DATOS ALMACENADOS: Suc ${sucursal} - ${proveedor}: ${cumplimiento}%`);
+                } else {
+                    console.log(`   ⚠️ No se almacenó (falta proveedor o sucursal)`);
+                }
+            } else {
+                console.log(`   ❌ No se encontraron TOTALES en el texto`);
+                console.log(`   Buscando "TOTA" en el texto...`);
+                const indexTota = texto.indexOf('TOTA');
+                if (indexTota !== -1) {
+                    console.log(`   Contexto alrededor de TOTA: "${texto.substring(indexTota, indexTota + 100)}"`);
+                }
+            }
+        }
+
+        function generarTabla() {
+            console.log('📊 === INICIANDO generarTabla() ===');
+            console.log('   datosConsolidados al inicio:', datosConsolidados);
+            console.log('   Cantidad de sucursales:', Object.keys(datosConsolidados).length);
+            
+            const tbody = document.getElementById('tablaBody');
+            tbody.innerHTML = '';
+
+            // Usar SUCURSALES_SISTEMA en lugar de las sucursales de datosConsolidados
+            const sucursalesOrdenadas = SUCURSALES_SISTEMA;
+            const proveedores = ['CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE'];
+
+            let totalCumplimientos = 0;
+            let cantidadCeldas = 0;
+
+            sucursalesOrdenadas.forEach(sucursal => {
+                const tr = document.createElement('tr');
+                
+                // Columna Sucursal
+                const tdSucursal = document.createElement('td');
+                tdSucursal.className = 'sucursal-col';
+                tdSucursal.textContent = sucursal;
+                tr.appendChild(tdSucursal);
+
+                // Columnas de proveedores
+                proveedores.forEach(proveedor => {
+                    const td = document.createElement('td');
+                    
+                    // Verificar si esta sucursal NO opera con este proveedor
+                    const esNoDisponible = SUCURSALES_NO_DISPONIBLE[sucursal] && 
+                                          SUCURSALES_NO_DISPONIBLE[sucursal].includes(proveedor);
+                    
+                    if (esNoDisponible) {
+                        // Mostrar "N/R"
+                        td.textContent = 'N/R';
+                        td.className = 'cumplimiento-nd';
+                        td.style.background = '#f5f5f5';
+                        td.style.color = '#9e9e9e';
+                        td.style.fontWeight = 'bold';
+                        td.style.fontSize = '0.85em';
+                    } else {
+                        // Verificar si esta sucursal tiene RA para este proveedor
+                        const esRA = SUCURSALES_RA[proveedor] && SUCURSALES_RA[proveedor].includes(sucursal);
+                        
+                        if (esRA) {
+                            // Mostrar RA (Reposición Asistida)
+                            td.textContent = 'RA';
+                            td.className = 'cumplimiento-ra';
+                            td.style.background = '#e3f2fd';
+                            td.style.color = '#1565c0';
+                            td.style.fontWeight = 'bold';
+                            td.style.fontSize = '0.85em';
+                        } else {
+                            const cumplimiento = datosConsolidados[sucursal]?.[proveedor];
+                            
+                            // Log para debugging
+                            if (sucursal === '006' && proveedor === 'CCU') {
+                                console.log(`   🔍 Sucursal 006 - CCU:`);
+                                console.log('      datosConsolidados[006]:', datosConsolidados['006']);
+                                console.log('      cumplimiento:', cumplimiento);
+                            }
+                            
+                            if (cumplimiento !== undefined) {
+                                td.textContent = cumplimiento + '%';
+                                
+                                // Aplicar clase según cumplimiento
+                                if (cumplimiento >= 90) {
+                                    td.className = 'cumplimiento-excelente';
+                                } else if (cumplimiento >= 75) {
+                                    td.className = 'cumplimiento-bueno';
+                                } else {
+                                    td.className = 'cumplimiento-regular';
+                                }
+
+                                totalCumplimientos += cumplimiento;
+                                cantidadCeldas++;
+                            } else {
+                                // Celda vacía (aún no se cargó PDF)
+                                td.textContent = '-';
+                                td.className = 'cumplimiento-vacio';
+                            }
+                        }
+                    }
+                    
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+
+            // Actualizar estadísticas
+            document.getElementById('statSucursales').textContent = sucursalesOrdenadas.length;
+            
+            // Contar proveedores únicos con datos (excluyendo RA)
+            const proveedoresConDatos = new Set();
+            SUCURSALES_SISTEMA.forEach(suc => {
+                if (datosConsolidados[suc]) {
+                    Object.keys(datosConsolidados[suc]).forEach(prov => {
+                        proveedoresConDatos.add(prov);
+                    });
+                }
+            });
+            document.getElementById('statProveedores').textContent = proveedoresConDatos.size;
+            
+            const promedioGeneral = cantidadCeldas > 0 ? Math.round(totalCumplimientos / cantidadCeldas) : 0;
+            document.getElementById('statPromedio').textContent = promedioGeneral + '%';
+            
+            // Calcular promedios por proveedor para el gráfico
+            const promediosPorProveedor = {};
+            proveedores.forEach(proveedor => {
+                let totalProv = 0;
+                let cantProv = 0;
+                SUCURSALES_SISTEMA.forEach(sucursal => {
+                    const cumplimiento = datosConsolidados[sucursal]?.[proveedor];
+                    if (cumplimiento !== undefined) {
+                        totalProv += cumplimiento;
+                        cantProv++;
+                    }
+                });
+                promediosPorProveedor[proveedor] = cantProv > 0 ? Math.round(totalProv / cantProv) : 0;
+            });
+            
+            // Actualizar gráfico
+            actualizarGrafico(promediosPorProveedor);
+            
+            // Calcular celdas completadas para botones de exportación
+            let celdasCompletadas = 0;
+            SUCURSALES_SISTEMA.forEach(suc => {
+                proveedores.forEach(prov => {
+                    const esRA = SUCURSALES_RA[prov] && SUCURSALES_RA[prov].includes(suc);
+                    const esND = SUCURSALES_NO_DISPONIBLE[suc] && SUCURSALES_NO_DISPONIBLE[suc].includes(prov);
+                    const tieneDatos = datosConsolidados[suc]?.[prov] !== undefined;
+                    
+                    if (esRA || esND || tieneDatos) {
+                        celdasCompletadas++;
+                    }
+                });
+            });
+
+            // Mostrar elementos siempre (incluso si la tabla está vacía)
+            document.getElementById('tableContainer').style.display = 'block';
+            document.getElementById('statsContainer').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+            
+            // Solo mostrar botones de exportación si hay datos procesados
+            if (celdasCompletadas > 0) {
+                document.getElementById('btnExcel').style.display = 'inline-block';
+                document.getElementById('btnPDF').style.display = 'inline-block';
+            }
+            
+            // Autoguardar después de procesar (solo si hay datos)
+            if (celdasCompletadas > 0) {
+                autoguardar();
+            }
+        }
+        
+        // Variable global para el gráfico
+        let cumplimientoChart = null;
+        
+        // Función para actualizar el gráfico
+        function actualizarGrafico(promedios) {
+            const ctx = document.getElementById('cumplimientoChart').getContext('2d');
+            
+            const proveedores = ['CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE'];
+            const valores = proveedores.map(p => promedios[p] || 0);
+            
+            // Colores suaves según cumplimiento
+            const coloresFondo = valores.map(val => {
+                if (val >= 90) return 'rgba(129, 199, 132, 0.8)'; // Verde suave
+                if (val >= 75) return 'rgba(255, 213, 79, 0.8)'; // Amarillo suave
+                if (val > 0) return 'rgba(229, 115, 115, 0.8)'; // Rojo suave
+                return 'rgba(189, 189, 189, 0.8)'; // Gris suave
+            });
+            
+            const coloresBorde = valores.map(val => {
+                if (val >= 90) return 'rgba(76, 175, 80, 1)';
+                if (val >= 75) return 'rgba(255, 193, 7, 1)';
+                if (val > 0) return 'rgba(244, 67, 54, 1)';
+                return 'rgba(158, 158, 158, 1)';
+            });
+            
+            // Destruir gráfico anterior si existe
+            if (cumplimientoChart) {
+                cumplimientoChart.destroy();
+            }
+            
+            // Crear nuevo gráfico
+            cumplimientoChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: proveedores,
+                    datasets: [{
+                        label: 'Cumplimiento (%)',
+                        data: valores,
+                        backgroundColor: coloresFondo,
+                        borderColor: coloresBorde,
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        barPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Cumplimiento: ' + context.parsed.y + '%';
+                                }
+                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 13
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                },
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('portrait'); // VERTICAL para mejor visualización
+
+            const mesSeleccionado = document.getElementById('monthInput').value;
+            const [año, mes] = mesSeleccionado.split('-');
+            const nombreMes = new Date(año, mes - 1).toLocaleString('es', { month: 'long', year: 'numeric' });
+
+            // ======================
+            // TÍTULO PRINCIPAL
+            // ======================
+            doc.setFontSize(16);
+            doc.setTextColor(44, 62, 80);
+            doc.text('NIVEL DE CUMPLIMIENTO', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.text('OC PROVEEDORES LOCALES', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+
+            // Subtítulo (mes/año)
+            doc.setFontSize(12);
+            doc.setTextColor(102, 126, 234);
+            doc.text(nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1), doc.internal.pageSize.getWidth() / 2, 29, { align: 'center' });
+
+            // ======================
+            // CALCULAR ESTADÍSTICAS
+            // ======================
+            const sucursalesOrdenadas = SUCURSALES_SISTEMA;
+            const proveedores = ['CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE'];
+            
+            // Totales generales
+            const totalSucursales = sucursalesOrdenadas.length;
+            const proveedoresProcesados = new Set(Object.values(datosConsolidados).flatMap(s => Object.keys(s))).size;
+            const pdfsCargados = archivosSeleccionados.length;
+            
+            // Celdas completadas
+            let celdasCompletadas = 0;
+            let celdasTotales = 0;
+            let totalCumplimientos = 0;
+            let cantidadCeldas = 0;
+            
+            sucursalesOrdenadas.forEach(sucursal => {
+                proveedores.forEach(proveedor => {
+                    const esRA = SUCURSALES_RA[proveedor] && SUCURSALES_RA[proveedor].includes(sucursal);
+                    const esND = SUCURSALES_NO_DISPONIBLE[sucursal] && SUCURSALES_NO_DISPONIBLE[sucursal].includes(proveedor);
+                    
+                    if (!esRA && !esND) { // Solo contar celdas que pueden tener datos
+                        celdasTotales++;
+                        const cumplimiento = datosConsolidados[sucursal]?.[proveedor];
+                        if (cumplimiento !== undefined) {
+                            celdasCompletadas++;
+                            totalCumplimientos += cumplimiento;
+                            cantidadCeldas++;
+                        }
+                    }
+                });
+            });
+            
+            const promedioGeneral = cantidadCeldas > 0 ? Math.round(totalCumplimientos / cantidadCeldas) : 0;
+            
+            // Promedio por proveedor
+            const promediosPorProveedor = {};
+            proveedores.forEach(proveedor => {
+                let totalProv = 0;
+                let cantProv = 0;
+                sucursalesOrdenadas.forEach(sucursal => {
+                    const cumplimiento = datosConsolidados[sucursal]?.[proveedor];
+                    if (cumplimiento !== undefined) {
+                        totalProv += cumplimiento;
+                        cantProv++;
+                    }
+                });
+                promediosPorProveedor[proveedor] = cantProv > 0 ? Math.round(totalProv / cantProv) : 0;
+            });
+
+            // ======================
+            // CUADROS DE ESTADÍSTICAS (SOLO 3 CUADROS)
+            // ======================
+            let yPos = 38;
+            const boxWidth = 50;
+            const boxHeight = 18;
+            const boxSpacing = 8;
+            
+            // Calcular posición para centrar 3 cuadros
+            const totalWidth = (boxWidth * 3) + (boxSpacing * 2);
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const startX = (pageWidth - totalWidth) / 2;
+
+            // Función para dibujar cuadro estadístico
+            function dibujarCuadro(x, y, titulo, valor, color) {
+                // Fondo del cuadro
+                doc.setFillColor(color[0], color[1], color[2]);
+                doc.roundedRect(x, y, boxWidth, boxHeight, 2, 2, 'F');
+                
+                // Título
+                doc.setFontSize(8);
+                doc.setTextColor(255, 255, 255);
+                doc.text(titulo, x + boxWidth / 2, y + 5, { align: 'center' });
+                
+                // Valor
+                doc.setFontSize(16);
+                doc.setTextColor(255, 255, 255);
+                doc.text(String(valor), x + boxWidth / 2, y + 13, { align: 'center' });
+            }
+
+            // 3 cuadros principales centrados
+            dibujarCuadro(startX, yPos, 'Total Sucursales', totalSucursales, [102, 126, 234]);
+            dibujarCuadro(startX + boxWidth + boxSpacing, yPos, 'Proveedores', proveedoresProcesados, [102, 126, 234]);
+            dibujarCuadro(startX + (boxWidth + boxSpacing) * 2, yPos, 'Cumplimiento Global', `${promedioGeneral}%`, [102, 126, 234]);
+
+            // ======================
+            // CUMPLIMIENTO POR PROVEEDOR (COLORES SUAVES)
+            // ======================
+            yPos += boxHeight + 8;
+            doc.setFontSize(10);
+            doc.setTextColor(44, 62, 80);
+            doc.text('Cumplimiento Promedio por Proveedor', pageWidth / 2, yPos, { align: 'center' });
+            
+            yPos += 6;
+            const provBoxWidth = 37;
+            const provBoxHeight = 15;
+            const provBoxSpacing = 3; // Reducido de 8 a 3 para que quepan mejor
+            
+            // Calcular posición para centrar 5 cuadros
+            const totalProvWidth = (provBoxWidth * 5) + (provBoxSpacing * 4);
+            const startXProv = (pageWidth - totalProvWidth) / 2;
+            
+            proveedores.forEach((proveedor, index) => {
+                const xPos = startXProv + (index * (provBoxWidth + provBoxSpacing));
+                const promedio = promediosPorProveedor[proveedor];
+                
+                // COLORES SUAVES según cumplimiento
+                let color;
+                if (promedio >= 90) {
+                    color = [129, 199, 132]; // Verde suave (Material Design Light Green 300)
+                } else if (promedio >= 75) {
+                    color = [255, 213, 79]; // Amarillo suave (Material Design Amber 300)
+                } else if (promedio > 0) {
+                    color = [229, 115, 115]; // Rojo suave (Material Design Red 300)
+                } else {
+                    color = [189, 189, 189]; // Gris suave
+                }
+                
+                doc.setFillColor(color[0], color[1], color[2]);
+                doc.roundedRect(xPos, yPos, provBoxWidth, provBoxHeight, 2, 2, 'F');
+                
+                doc.setFontSize(7);
+                doc.setTextColor(255, 255, 255);
+                doc.text(proveedor, xPos + provBoxWidth / 2, yPos + 5, { align: 'center' });
+                
+                doc.setFontSize(14);
+                doc.text(`${promedio}%`, xPos + provBoxWidth / 2, yPos + 12, { align: 'center' });
+            });
+
+            // ======================
+            // TABLA DE DATOS
+            // ======================
+            yPos += provBoxHeight + 10;
+
+            const tableData = [];
+            sucursalesOrdenadas.forEach(sucursal => {
+                const fila = [sucursal];
+                proveedores.forEach(proveedor => {
+                    const esRA = SUCURSALES_RA[proveedor] && SUCURSALES_RA[proveedor].includes(sucursal);
+                    const esND = SUCURSALES_NO_DISPONIBLE[sucursal] && SUCURSALES_NO_DISPONIBLE[sucursal].includes(proveedor);
+                    
+                    if (esND) {
+                        fila.push('N/R');
+                    } else if (esRA) {
+                        fila.push('RA');
+                    } else {
+                        const cumplimiento = datosConsolidados[sucursal]?.[proveedor];
+                        fila.push(cumplimiento !== undefined ? cumplimiento + '%' : '-');
+                    }
+                });
+                tableData.push(fila);
+            });
+
+            // Crear tabla con autoTable
+            doc.autoTable({
+                head: [['Sucursal', 'CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE']],
+                body: tableData,
+                startY: yPos,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [102, 126, 234],
+                    textColor: [255, 255, 255],
+                    fontSize: 9,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                columnStyles: {
+                    0: { halign: 'center', fontStyle: 'bold', cellWidth: 25 },
+                    1: { halign: 'center', cellWidth: 28 },
+                    2: { halign: 'center', cellWidth: 28 },
+                    3: { halign: 'center', cellWidth: 32 },
+                    4: { halign: 'center', cellWidth: 28 },
+                    5: { halign: 'center', cellWidth: 32 }
+                },
+                bodyStyles: {
+                    fontSize: 8
+                },
+                didParseCell: function (data) {
+                    if (data.section === 'body' && data.column.index > 0) {
+                        const cellValue = data.cell.raw;
+                        
+                        if (cellValue === 'N/R') {
+                            // N/R (No Recibe) - gris más oscuro y visible
+                            data.cell.styles.fillColor = [224, 224, 224]; // Gris más oscuro
+                            data.cell.styles.textColor = [66, 66, 66]; // Texto gris oscuro #424242
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.fontSize = 8; // Un poco más grande
+                        } else if (cellValue === 'RA') {
+                            // Reposición Asistida - azul
+                            data.cell.styles.fillColor = [227, 242, 253];
+                            data.cell.styles.textColor = [21, 101, 192];
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.fontSize = 7;
+                        } else if (cellValue === '-') {
+                            // Sin datos - gris claro
+                            data.cell.styles.fillColor = [233, 236, 239];
+                            data.cell.styles.textColor = [108, 117, 125];
+                        } else {
+                            const porcentaje = parseInt(cellValue);
+                            
+                            if (porcentaje >= 90) {
+                                data.cell.styles.fillColor = [212, 237, 218];
+                                data.cell.styles.textColor = [21, 87, 36];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (porcentaje >= 75) {
+                                data.cell.styles.fillColor = [255, 243, 205];
+                                data.cell.styles.textColor = [133, 100, 4];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else {
+                                data.cell.styles.fillColor = [248, 215, 218];
+                                data.cell.styles.textColor = [114, 28, 36];
+                                data.cell.styles.fontStyle = 'bold';
+                            }
+                        }
+                    }
+                }
+            });
+
+            // ======================
+            // LEYENDA DE COLORES - DOS LÍNEAS
+            // ======================
+            const finalY = doc.lastAutoTable.finalY + 8;
+            doc.setFontSize(8);
+            doc.setTextColor(44, 62, 80);
+            doc.text('Leyenda de Semaforización:', startX, finalY);
+            
+            // LÍNEA 1: Semaforización (centrada)
+            const leyendaY1 = finalY + 5;
+            // pageWidth ya declarado arriba
+            
+            // Calcular ancho total de la semaforización para centrar
+            const anchoSemafo = 180; // Aproximado
+            const startXCentrado = (pageWidth - anchoSemafo) / 2;
+            
+            // Verde
+            doc.setFillColor(212, 237, 218);
+            doc.rect(startXCentrado, leyendaY1 - 3, 6, 4, 'F');
+            doc.setTextColor(21, 87, 36);
+            doc.text('Excelente (>=90%)', startXCentrado + 8, leyendaY1);
+            
+            // Amarillo
+            doc.setFillColor(255, 243, 205);
+            doc.rect(startXCentrado + 60, leyendaY1 - 3, 6, 4, 'F');
+            doc.setTextColor(133, 100, 4);
+            doc.text('Bueno (75-89%)', startXCentrado + 68, leyendaY1);
+            
+            // Rojo
+            doc.setFillColor(248, 215, 218);
+            doc.rect(startXCentrado + 120, leyendaY1 - 3, 6, 4, 'F');
+            doc.setTextColor(114, 28, 36);
+            doc.text('Regular (<75%)', startXCentrado + 128, leyendaY1);
+            
+            // LÍNEA 2: Indicadores especiales (centrada)
+            const leyendaY2 = leyendaY1 + 8;
+            const anchoIndicadores = 175; // Aumentado para que quepa "N/R (No Recibe)"
+            const startXIndicadores = (pageWidth - anchoIndicadores) / 2;
+            
+            // RA (Reposición Asistida)
+            doc.setFillColor(227, 242, 253);
+            doc.rect(startXIndicadores, leyendaY2 - 3, 6, 4, 'F');
+            doc.setTextColor(21, 101, 192);
+            doc.text('RA (Reposición Asistida)', startXIndicadores + 8, leyendaY2);
+            
+            // N/R (No Recibe)
+            doc.setFillColor(224, 224, 224);
+            doc.rect(startXIndicadores + 80, leyendaY2 - 3, 6, 4, 'F');
+            doc.setTextColor(66, 66, 66);
+            doc.text('N/R (No Recibe)', startXIndicadores + 88, leyendaY2);
+            
+            // Sin datos
+            doc.setFillColor(233, 236, 239);
+            doc.rect(startXIndicadores + 118, leyendaY2 - 3, 6, 4, 'F');
+            doc.setTextColor(108, 117, 125);
+            doc.text('Sin datos', startXIndicadores + 126, leyendaY2);
+
+            // Guardar PDF
+            doc.save(`Consolidado_Cumplimientos_${año}_${mes}.pdf`);
+            console.log('✅ PDF exportado con formato vertical y estadísticas completas');
+        }
+
+        async function exportarExcel() {
+            const mesSeleccionado = document.getElementById('monthInput').value;
+            const [año, mes] = mesSeleccionado.split('-');
+            const nombreMes = new Date(año, mes - 1).toLocaleString('es', { month: 'long', year: 'numeric' });
+
+            // Crear workbook y worksheet con ExcelJS
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Cumplimientos');
+
+            // Configurar ancho de columnas
+            worksheet.columns = [
+                { width: 12 }, // Sucursal
+                { width: 12 }, // CCU
+                { width: 12 }, // QUILMES
+                { width: 14 }, // COCA COLA
+                { width: 12 }, // DANONE
+                { width: 14 }  // MASTELLONE
+            ];
+
+            // FILA 1: Título principal
+            worksheet.mergeCells('A1:F1');
+            const tituloCell = worksheet.getCell('A1');
+            tituloCell.value = 'NIVEL DE CUMPLIMIENTO - OC PROVEEDORES LOCALES';
+            tituloCell.font = { bold: true, size: 14, color: { argb: 'FF2C3E50' } };
+            tituloCell.alignment = { horizontal: 'center', vertical: 'middle' };
+            tituloCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF8F9FA' }
+            };
+
+            // FILA 2: Subtítulo (mes/año)
+            worksheet.mergeCells('A2:F2');
+            const subtituloCell = worksheet.getCell('A2');
+            subtituloCell.value = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+            subtituloCell.font = { bold: true, size: 12, color: { argb: 'FF667EEA' } };
+            subtituloCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+            // FILA 3: Vacía
+            
+            // FILA 4: Encabezados de columna
+            const encabezados = ['Sucursal', 'CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE'];
+            const headerRow = worksheet.getRow(4);
+            encabezados.forEach((titulo, index) => {
+                const cell = headerRow.getCell(index + 1);
+                cell.value = titulo;
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+                cell.fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FF667EEA' }
+                };
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                    bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                    left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                    right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+                };
+            });
+
+            // FILAS 5+: Datos de sucursales
+            const sucursalesOrdenadas = SUCURSALES_SISTEMA;
+            const proveedores = ['CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE'];
+
+            sucursalesOrdenadas.forEach((sucursal, index) => {
+                const fila = worksheet.getRow(5 + index);
+                
+                // Columna A: Sucursal
+                const cellSucursal = fila.getCell(1);
+                cellSucursal.value = sucursal;
+                cellSucursal.font = { bold: true, color: { argb: 'FF2C3E50' } };
+                cellSucursal.alignment = { horizontal: 'left', vertical: 'middle' };
+                cellSucursal.border = {
+                    top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                    bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                    left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                    right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+                };
+
+                // Columnas B-F: Proveedores
+                proveedores.forEach((proveedor, colIndex) => {
+                    const cell = fila.getCell(2 + colIndex);
+                    
+                    // Verificar si es N/R (No Recibe)
+                    const esNoDisponible = SUCURSALES_NO_DISPONIBLE[sucursal] && 
+                                          SUCURSALES_NO_DISPONIBLE[sucursal].includes(proveedor);
+                    
+                    if (esNoDisponible) {
+                        // N/R (No Recibe)
+                        cell.value = 'N/R';
+                        cell.font = { bold: true, color: { argb: 'FF9E9E9E' } };
+                        cell.fill = {
+                            type: 'pattern',
+                            pattern: 'solid',
+                            fgColor: { argb: 'FFF5F5F5' }
+                        };
+                        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                    } else {
+                        // Verificar si es RA
+                        const esRA = SUCURSALES_RA[proveedor] && SUCURSALES_RA[proveedor].includes(sucursal);
+                        
+                        if (esRA) {
+                            // Reposición Asistida
+                            cell.value = 'RA';
+                            cell.font = { bold: true, color: { argb: 'FF1565C0' } };
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFE3F2FD' }
+                            };
+                            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                        } else {
+                            const cumplimiento = datosConsolidados[sucursal]?.[proveedor];
+
+                            if (cumplimiento !== undefined) {
+                                cell.value = cumplimiento / 100;
+                                cell.numFmt = '0%';
+                                cell.font = { bold: true };
+                                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+                                // Aplicar colores según cumplimiento
+                                if (cumplimiento >= 90) {
+                                    cell.fill = {
+                                        type: 'pattern',
+                                        pattern: 'solid',
+                                        fgColor: { argb: 'FFD4EDDA' }
+                                    };
+                                    cell.font.color = { argb: 'FF155724' };
+                                } else if (cumplimiento >= 75) {
+                                    cell.fill = {
+                                        type: 'pattern',
+                                        pattern: 'solid',
+                                        fgColor: { argb: 'FFFFF3CD' }
+                                    };
+                                    cell.font.color = { argb: 'FF856404' };
+                                } else {
+                                    cell.fill = {
+                                    type: 'pattern',
+                                    pattern: 'solid',
+                                    fgColor: { argb: 'FFF8D7DA' }
+                                };
+                                cell.font.color = { argb: 'FF721C24' };
+                            }
+                        } else {
+                            // Celda vacía (-)
+                            cell.value = '-';
+                            cell.fill = {
+                                type: 'pattern',
+                                pattern: 'solid',
+                                fgColor: { argb: 'FFE9ECEF' }
+                            };
+                            cell.font = { color: { argb: 'FF6C757D' } };
+                            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                        }
+                    }
+                    }
+
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                        bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                        left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+                        right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+                    };
+                });
+            });
+
+            // Generar archivo Excel
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `Consolidado_Cumplimientos_${año}_${mes}.xlsx`);
+            
+            console.log('✅ Excel exportado con formato y colores (ExcelJS)');
+        }
+
+        // Función para limpiar con protección de contraseña (solo admin)
+        function limpiarConClave() {
+            const claveCorrecta = 'admin2026'; // Cambiar esta contraseña
+            const claveIngresada = prompt('🔐 Acceso de Administrador\n\nIngrese la contraseña para limpiar:');
+            
+            if (claveIngresada === null) {
+                // Usuario canceló
+                return;
+            }
+            
+            if (claveIngresada === claveCorrecta) {
+                // Contraseña correcta, preguntar qué quiere limpiar
+                const mensaje = '¿Qué desea limpiar?\n\n' +
+                              '1 = Solo esta vista (los datos en Google Sheets permanecen)\n' +
+                              '2 = TODO incluyendo Google Sheets (borra datos de TODAS las sucursales)\n\n' +
+                              'Ingrese 1 o 2:';
+                
+                const opcion = prompt(mensaje);
+                
+                if (opcion === '1') {
+                    limpiarLocal();
+                } else if (opcion === '2') {
+                    limpiarTodoConConfirmacion();
+                } else if (opcion !== null) {
+                    alert('Opción inválida. Cancelado.');
+                }
+            } else {
+                // Contraseña incorrecta
+                alert('❌ Contraseña incorrecta.\n\nEsta función es solo para administradores.\nContacte a Jona si necesita limpiar el sistema.');
+            }
+        }
+
+        function limpiarLocal() {
+            if (confirm('Limpiar solo esta vista?\n\n' +
+                       'Esto limpiará:\n' +
+                       '• Los datos mostrados en pantalla\n' +
+                       '• Los archivos cargados\n\n' +
+                       'Los datos en Google Sheets NO se borran.\n' +
+                       'Se volverán a cargar en 30 segundos por la sincronización automática.')) {
+                
+                // Desactivar sincronización temporalmente
+                sincronizacionActiva = false;
+                console.log('⏸️ Sincronización automática desactivada temporalmente');
+                
+                inicializarSucursales();
+                archivosSeleccionados = [];
+                document.getElementById('pdfInput').value = '';
+                document.getElementById('filesLoaded').style.display = 'none';
+                document.getElementById('filesList').innerHTML = '';
+                document.getElementById('fileInputLabel').innerHTML = '🔍 Seleccionar PDFs (puede elegir múltiples archivos)';
+                document.getElementById('tableContainer').style.display = 'none';
+                document.getElementById('statsContainer').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('btnExcel').style.display = 'none';
+                document.getElementById('btnPDF').style.display = 'none';
+                limpiarAutoguardado();
+                
+                // Reactivar sincronización después de 3 segundos
+                setTimeout(() => {
+                    sincronizacionActiva = true;
+                    console.log('▶️ Sincronización automática reactivada');
+                    // Recargar datos automáticamente
+                    cargarDatosGoogleSheets().then(() => {
+                        generarTabla();
+                    });
+                }, 3000);
+                
+                console.log('🗑️ Vista local limpiada (Google Sheets intacto)');
+                alert('✅ Vista limpiada.\n\nNota: Los datos en Google Sheets permanecen.\nSe recargarán automáticamente en 3 segundos.');
+            }
+        }
+
+        async function limpiarTodoConConfirmacion() {
+            if (confirm('⚠️ ADVERTENCIA CRÍTICA ⚠️\n\n' +
+                       'Esto borrará TODOS los datos del mes actual de Google Sheets.\n' +
+                       'Todas las sucursales perderán sus datos de este mes.\n\n' +
+                       'Esta acción NO se puede deshacer.\n\n' +
+                       '¿Está ABSOLUTAMENTE seguro?')) {
+                
+                if (confirm('ÚLTIMA CONFIRMACIÓN\n\n' +
+                           'Al confirmar se borrarán TODOS los datos del mes actual.\n\n' +
+                           '¿Continuar?')) {
+                    
+                    try {
+                        const mesSeleccionado = document.getElementById('monthInput').value;
+                        
+                        if (!mesSeleccionado) {
+                            alert('Por favor seleccione un mes primero.');
+                            return;
+                        }
+                        
+                        // Desactivar sincronización automática temporalmente
+                        sincronizacionActiva = false;
+                        console.log('⏸️ Sincronización automática desactivada temporalmente');
+                        
+                        // Borrar de Google Sheets
+                        const borradoExitoso = await borrarDatosGoogleSheets(mesSeleccionado);
+                        
+                        if (borradoExitoso) {
+                            // Limpiar vista local
+                            inicializarSucursales();
+                            archivosSeleccionados = [];
+                            document.getElementById('pdfInput').value = '';
+                            document.getElementById('filesLoaded').style.display = 'none';
+                            document.getElementById('filesList').innerHTML = '';
+                            document.getElementById('fileInputLabel').innerHTML = '🔍 Seleccionar PDFs (puede elegir múltiples archivos)';
+                            document.getElementById('tableContainer').style.display = 'none';
+                            document.getElementById('statsContainer').style.display = 'none';
+                            document.getElementById('emptyState').style.display = 'block';
+                            document.getElementById('btnExcel').style.display = 'none';
+                            document.getElementById('btnPDF').style.display = 'none';
+                            limpiarAutoguardado();
+                            
+                            // Reactivar sincronización después de 3 segundos
+                            setTimeout(() => {
+                                sincronizacionActiva = true;
+                                console.log('▶️ Sincronización automática reactivada');
+                            }, 3000);
+                            
+                            console.log('🗑️ Sistema y Google Sheets limpiados completamente');
+                            alert('✅ DATOS BORRADOS EXITOSAMENTE\n\n' +
+                                  `Se borraron todos los datos del mes ${mesSeleccionado} de Google Sheets.\n\n` +
+                                  'La vista local también fue limpiada.');
+                        } else {
+                            // Si falla, reactivar sincronización
+                            sincronizacionActiva = true;
+                            alert('❌ Error al borrar datos de Google Sheets.\n\nPor favor, intente nuevamente o borre manualmente desde la hoja.');
+                        }
+                        
+                    } catch (error) {
+                        console.error('Error al limpiar:', error);
+                        sincronizacionActiva = true; // Reactivar en caso de error
+                        actualizarEstadoGS('Error al limpiar', 'error');
+                        alert('❌ Error al limpiar: ' + error.message);
+                    }
+                }
+            }
+        }
+
+        // Función legacy (ya no se usa directamente)
+        function limpiar() {
+            limpiarLocal();
+        }
+    </script>
+</body>
+</html>
