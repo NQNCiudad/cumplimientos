@@ -342,6 +342,7 @@
             <button class="btn btn-primary" onclick="procesarPDFs()">🚀 Procesar y Actualizar Tabla</button>
             <button class="btn btn-secondary" onclick="exportarExcel()" id="btnExcel" style="display: none;">📊 Exportar a Excel</button>
             <button class="btn btn-secondary" onclick="exportarPDF()" id="btnPDF" style="display: none;">📄 Exportar a PDF</button>
+            <button class="btn btn-warning" onclick="borrarDatosCargados()" style="background: #ff9800; border-color: #ff9800;">🗑️ Borrar Datos Cargados</button>
             <button class="btn btn-danger" onclick="limpiarConClave()">🗑️ Limpiar Todo (Admin)</button>
         </div>
         
@@ -613,6 +614,38 @@
                 console.error('❌ Mensaje:', error.message);
                 actualizarEstadoGS('Error al guardar', 'error');
                 alert('❌ Error al guardar: ' + error.message);
+                return false;
+            }
+        }
+
+        async function borrarDatosEspecificos(sucursal, proveedor, mes) {
+            try {
+                actualizarEstadoGS('Borrando...', 'saving');
+                console.log(`🗑️ Borrando: Sucursal ${sucursal}, Proveedor ${proveedor}, Mes ${mes}`);
+                
+                const params = new URLSearchParams({
+                    action: 'delete_specific',
+                    sucursal: sucursal,
+                    proveedor: proveedor,
+                    mes: mes
+                });
+                
+                const fullUrl = `${GOOGLE_SHEETS_URL}?${params.toString()}`;
+                const response = await fetch(fullUrl);
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ Datos borrados exitosamente');
+                    actualizarEstadoGS('Sincronizado', 'success');
+                    return true;
+                } else {
+                    console.error('❌ Error al borrar:', result);
+                    actualizarEstadoGS('Error al borrar', 'error');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error al borrar datos:', error);
+                actualizarEstadoGS('Error al borrar', 'error');
                 return false;
             }
         }
@@ -1694,6 +1727,119 @@
             saveAs(blob, `Consolidado_Cumplimientos_${año}_${mes}.xlsx`);
             
             console.log('✅ Excel exportado con formato y colores (ExcelJS)');
+        }
+
+        // Función para que usuarios borren sus propios datos cargados
+        async function borrarDatosCargados() {
+            const mesSeleccionado = document.getElementById('monthInput').value;
+            
+            if (!mesSeleccionado) {
+                alert('⚠️ Por favor seleccione un mes primero.');
+                return;
+            }
+            
+            // Listar sucursales disponibles
+            const sucursalesTexto = SUCURSALES_SISTEMA.join(', ');
+            
+            const sucursal = prompt(
+                '🔍 BORRAR DATOS CARGADOS\n\n' +
+                'Ingrese el código de sucursal (3 dígitos):\n\n' +
+                'Sucursales: ' + sucursalesTexto
+            );
+            
+            if (!sucursal) {
+                return; // Usuario canceló
+            }
+            
+            // Validar formato de sucursal
+            const sucursalFormateada = String(sucursal).padStart(3, '0');
+            
+            if (!SUCURSALES_SISTEMA.includes(sucursalFormateada)) {
+                alert('❌ Sucursal inválida.\n\nDebe ser una de: ' + sucursalesTexto);
+                return;
+            }
+            
+            // Listar proveedores disponibles
+            const proveedoresTexto = PROVEEDORES.join(', ');
+            
+            const proveedor = prompt(
+                '🔍 BORRAR DATOS CARGADOS\n\n' +
+                `Sucursal: ${sucursalFormateada}\n\n` +
+                'Ingrese el nombre del proveedor:\n\n' +
+                'Proveedores:\n' +
+                '• CCU\n' +
+                '• QUILMES\n' +
+                '• COCA COLA\n' +
+                '• DANONE\n' +
+                '• MASTELLONE'
+            );
+            
+            if (!proveedor) {
+                return; // Usuario canceló
+            }
+            
+            // Normalizar proveedor (mayúsculas)
+            const proveedorNormalizado = proveedor.trim().toUpperCase();
+            
+            if (!PROVEEDORES.includes(proveedorNormalizado)) {
+                alert('❌ Proveedor inválido.\n\nDebe ser uno de: ' + proveedoresTexto);
+                return;
+            }
+            
+            // Confirmar borrado
+            const confirmacion = confirm(
+                '⚠️ CONFIRMAR BORRADO\n\n' +
+                `Sucursal: ${sucursalFormateada}\n` +
+                `Proveedor: ${proveedorNormalizado}\n` +
+                `Mes: ${mesSeleccionado}\n\n` +
+                '¿Está seguro que desea borrar estos datos?\n\n' +
+                'Esta acción eliminará el registro de Google Sheets.'
+            );
+            
+            if (!confirmacion) {
+                return;
+            }
+            
+            // Desactivar sincronización temporalmente
+            sincronizacionActiva = false;
+            
+            // Borrar de Google Sheets
+            const exitoso = await borrarDatosEspecificos(sucursalFormateada, proveedorNormalizado, mesSeleccionado);
+            
+            if (exitoso) {
+                // Limpiar de la vista local también
+                if (datosConsolidados[sucursalFormateada]) {
+                    delete datosConsolidados[sucursalFormateada][proveedorNormalizado];
+                }
+                
+                // Recargar datos y regenerar tabla
+                await cargarDatosGoogleSheets();
+                generarTabla();
+                
+                // Reactivar sincronización
+                setTimeout(() => {
+                    sincronizacionActiva = true;
+                }, 2000);
+                
+                alert(
+                    '✅ DATOS BORRADOS EXITOSAMENTE\n\n' +
+                    `Sucursal ${sucursalFormateada} - ${proveedorNormalizado}\n` +
+                    'Mes: ' + mesSeleccionado + '\n\n' +
+                    'La tabla se ha actualizado.'
+                );
+            } else {
+                // Reactivar sincronización aunque falle
+                sincronizacionActiva = true;
+                
+                alert(
+                    '❌ ERROR AL BORRAR\n\n' +
+                    'No se pudieron borrar los datos.\n' +
+                    'Posibles causas:\n' +
+                    '• Los datos no existen en Google Sheets\n' +
+                    '• Error de conexión\n\n' +
+                    'Intente nuevamente o verifique en Google Sheets.'
+                );
+            }
         }
 
         // Función para limpiar con protección de contraseña (solo admin)
