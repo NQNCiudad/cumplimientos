@@ -1148,6 +1148,14 @@
             // Guardar en Google Sheets automáticamente
             await guardarEnGoogleSheets();
             
+            // 🧹 LIMPIAR ARCHIVOS CARGADOS AUTOMÁTICAMENTE
+            console.log('🧹 Limpiando lista de archivos cargados...');
+            archivosSeleccionados = [];
+            document.getElementById('filesList').innerHTML = '';
+            document.getElementById('filesLoaded').style.display = 'none';
+            document.getElementById('pdfInput').value = ''; // Resetear input
+            console.log('✅ Archivos limpiados - listo para nueva carga');
+            
             document.getElementById('loading').style.display = 'none';
         }
 
@@ -2059,18 +2067,45 @@
             const proveedorSeleccionado = proveedoresDisponibles[numeroOpcion - 1];
             const cumplimientoActual = datosConsolidados[sucursalFormateada][proveedorSeleccionado];
             
-            // Confirmar borrado
-            const confirmacion = confirm(
-                '⚠️ CONFIRMAR BORRADO\n\n' +
+            // 🔐 CONFIRMACIÓN DE SEGURIDAD: Pedir número de sucursal como contraseña
+            const confirmacionSucursal = prompt(
+                '🔐 CONFIRMACIÓN DE SEGURIDAD\n\n' +
+                `Para borrar los datos de la sucursal ${sucursalFormateada}, ingrese el número de sucursal nuevamente como confirmación:\n\n` +
+                `(Ingrese ${sucursalFormateada} para confirmar)`
+            );
+            
+            if (!confirmacionSucursal) {
+                alert('⚠️ Borrado cancelado.');
+                return;
+            }
+            
+            // Normalizar entrada (quitar espacios, agregar ceros si es necesario)
+            const confirmacionNormalizada = String(confirmacionSucursal).trim().padStart(3, '0');
+            
+            // Verificar que coincida con la sucursal
+            if (confirmacionNormalizada !== sucursalFormateada) {
+                alert(
+                    '❌ CONTRASEÑA INCORRECTA\n\n' +
+                    `Ingresaste: ${confirmacionSucursal}\n` +
+                    `Requerido: ${sucursalFormateada}\n\n` +
+                    'El borrado ha sido cancelado por seguridad.'
+                );
+                return;
+            }
+            
+            // Confirmación final
+            const confirmacionFinal = confirm(
+                '⚠️ ÚLTIMA CONFIRMACIÓN\n\n' +
                 `Sucursal: ${sucursalFormateada}\n` +
                 `Proveedor: ${proveedorSeleccionado}\n` +
                 `Cumplimiento actual: ${cumplimientoActual}%\n` +
                 `Mes: ${mesSeleccionado}\n\n` +
-                '¿Está seguro que desea borrar estos datos?\n\n' +
+                '¿Confirma que desea borrar estos datos?\n\n' +
                 'Esta acción eliminará el registro de Google Sheets.'
             );
             
-            if (!confirmacion) {
+            if (!confirmacionFinal) {
+                alert('⚠️ Borrado cancelado.');
                 return;
             }
             
