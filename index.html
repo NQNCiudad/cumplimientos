@@ -549,11 +549,11 @@
                 ✅ Los datos se acumulan: puedes cargar PDFs de diferentes proveedores y la tabla se va completando
             </p>
             <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 5px;">
-                💾 <strong>Sincronización en línea:</strong> Los datos se guardan en Google Sheets y son visibles para todos
+                💾 <strong>Sincronización en línea:</strong> Los datos se guardan en base de datos y son visibles para todos
             </p>
         </div>
 
-        <!-- Indicador de estado de Google Sheets -->
+        <!-- Indicador de estado de base de datos -->
         <div id="gsStatus" style="
             position: fixed;
             top: 20px;
@@ -718,23 +718,23 @@
             '254': ['CCU', 'DANONE', 'MASTELLONE']  // Sucursal 254 no recibe de estos proveedores
         };
 
-        // CONFIGURACIÓN DE GOOGLE SHEETS
+        // CONFIGURACIÓN DE base de datos
         const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwnHKu6_5868rhYX2k5zTRg8LyqVgI2ADPeF1RVyB5pz9iJN9ATZg5z7wPdYy3BG7tgmg/exec';
         let sincronizacionActiva = true;
         let ultimaSincronizacion = null;
 
-        // FUNCIONES DE GOOGLE SHEETS
+        // FUNCIONES DE base de datos
         async function cargarDatosGoogleSheets() {
             try {
                 actualizarEstadoGS('Cargando datos...', 'loading');
-                console.log('📥 Cargando datos desde Google Sheets...');
+                console.log('📥 Cargando datos desde base de datos...');
                 
                 const response = await fetch(GOOGLE_SHEETS_URL);
                 const datos = await response.json();
                 
                 console.log(`📊 Datos recibidos: ${datos.length} filas`);
                 
-                // Convertir datos de Google Sheets a formato datosConsolidados
+                // Convertir datos de base de datos a formato datosConsolidados
                 const mesSeleccionado = document.getElementById('monthInput').value;
                 console.log(`📅 Filtrando por mes: ${mesSeleccionado}`);
                 
@@ -792,12 +792,12 @@
         async function guardarEnGoogleSheets() {
             try {
                 actualizarEstadoGS('Guardando...', 'saving');
-                console.log('💾 Guardando en Google Sheets...');
+                console.log('💾 Guardando en base de datos...');
                 
                 const mesSeleccionado = document.getElementById('monthInput').value;
                 const datosParaGuardar = [];
                 
-                // Convertir datosConsolidados a formato de Google Sheets
+                // Convertir datosConsolidados a formato de base de datos
                 Object.keys(datosConsolidados).forEach(sucursal => {
                     Object.keys(datosConsolidados[sucursal]).forEach(proveedor => {
                         const cumplimiento = datosConsolidados[sucursal][proveedor];
@@ -812,7 +812,7 @@
                     });
                 });
                 
-                console.log(`📤 Enviando ${datosParaGuardar.length} registros a Google Sheets`);
+                console.log(`📤 Enviando ${datosParaGuardar.length} registros a base de datos`);
                 
                 // Usar GET con parámetros codificados en lugar de POST
                 const params = new URLSearchParams({
@@ -828,8 +828,8 @@
                 if (result.success) {
                     console.log('✅ ¡DATOS GUARDADOS EXITOSAMENTE!');
                     
-                    // Recargar datos desde Google Sheets para confirmar guardado
-                    console.log('🔄 Recargando datos desde Google Sheets...');
+                    // Recargar datos desde base de datos para confirmar guardado
+                    console.log('🔄 Recargando datos desde base de datos...');
                     await cargarDatosGoogleSheets();
                     generarTabla();
                     
@@ -871,7 +871,7 @@
                 const fullUrl = `${GOOGLE_SHEETS_URL}?${params.toString()}`;
                 console.log('URL completa:', fullUrl);
                 
-                console.log('📡 Enviando petición a Google Sheets...');
+                console.log('📡 Enviando petición a base de datos...');
                 const response = await fetch(fullUrl);
                 console.log('📥 Respuesta recibida, status:', response.status);
                 
@@ -905,7 +905,7 @@
         async function borrarDatosGoogleSheets(mes) {
             try {
                 actualizarEstadoGS('Borrando datos...', 'saving');
-                console.log(`🗑️ Borrando datos del mes ${mes} de Google Sheets...`);
+                console.log(`🗑️ Borrando datos del mes ${mes} de base de datos...`);
                 
                 const params = new URLSearchParams({
                     action: 'delete',
@@ -917,7 +917,7 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    console.log('✅ Datos borrados exitosamente de Google Sheets');
+                    console.log('✅ Datos borrados exitosamente de base de datos');
                     actualizarEstadoGS('Sincronizado', 'success');
                     return true;
                 } else {
@@ -989,13 +989,13 @@
 
         // SISTEMA DE AUTOGUARDADO
         function autoguardar() {
-            // AUTOGUARDADO LOCAL DESACTIVADO - Ahora usamos Google Sheets
+            // AUTOGUARDADO LOCAL DESACTIVADO - Ahora usamos base de datos
             return;
         }
 
         function cargarAutoguardado() {
-            // FUNCIÓN DESACTIVADA - Ahora solo usamos Google Sheets
-            console.log('ℹ️ Autoguardado local desactivado - usando Google Sheets');
+            // FUNCIÓN DESACTIVADA - Ahora solo usamos base de datos
+            console.log('ℹ️ Autoguardado local desactivado - usando base de datos');
             return;
         }
 
@@ -1016,7 +1016,7 @@
             
             console.log(`📅 Selector de mes configurado (selección libre)`);
             
-            // Cargar datos desde Google Sheets
+            // Cargar datos desde base de datos
             setTimeout(async () => {
                 actualizarEstadoGS('Conectando...', 'loading');
                 const cargado = await cargarDatosGoogleSheets();
@@ -1052,7 +1052,7 @@
             e.target.value = '';
         });
 
-        // Listener para cambio de mes - recargar datos de Google Sheets
+        // Listener para cambio de mes - recargar datos de base de datos
         document.getElementById('monthInput').addEventListener('change', async function() {
             const mesNuevo = this.value;
             console.log(`📅 Mes cambiado a: ${mesNuevo}, recargando datos...`);
@@ -1145,7 +1145,7 @@
 
             generarTabla();
             
-            // Guardar en Google Sheets automáticamente
+            // Guardar en base de datos automáticamente
             await guardarEnGoogleSheets();
             
             // 🧹 LIMPIAR ARCHIVOS CARGADOS AUTOMÁTICAMENTE
@@ -2101,7 +2101,7 @@
                 `Cumplimiento actual: ${cumplimientoActual}%\n` +
                 `Mes: ${mesSeleccionado}\n\n` +
                 '¿Confirma que desea borrar estos datos?\n\n' +
-                'Esta acción eliminará el registro de Google Sheets.'
+                'Esta acción eliminará el registro de base de datos.'
             );
             
             if (!confirmacionFinal) {
@@ -2113,7 +2113,7 @@
             sincronizacionActiva = false;
             console.log('⏸️ Sincronización desactivada para borrado');
             
-            // Borrar de Google Sheets
+            // Borrar de base de datos
             const exitoso = await borrarDatosEspecificos(sucursalFormateada, proveedorSeleccionado, mesSeleccionado);
             
             if (exitoso) {
@@ -2124,7 +2124,7 @@
                 }
                 
                 // Recargar datos y regenerar tabla
-                console.log('🔄 Recargando datos desde Google Sheets...');
+                console.log('🔄 Recargando datos desde base de datos...');
                 await cargarDatosGoogleSheets();
                 generarTabla();
                 
@@ -2150,7 +2150,7 @@
                     '❌ ERROR AL BORRAR\n\n' +
                     'No se pudieron borrar los datos.\n\n' +
                     'Posibles causas:\n' +
-                    '• Los datos no existen en Google Sheets\n' +
+                    '• Los datos no existen en base de datos\n' +
                     '• Error de conexión\n' +
                     '• El Apps Script no está actualizado\n\n' +
                     'Intente nuevamente o contacte al administrador.'
@@ -2171,8 +2171,8 @@
             if (claveIngresada === claveCorrecta) {
                 // Contraseña correcta, preguntar qué quiere limpiar
                 const mensaje = '¿Qué desea limpiar?\n\n' +
-                              '1 = Solo esta vista (los datos en Google Sheets permanecen)\n' +
-                              '2 = TODO incluyendo Google Sheets (borra datos de TODAS las sucursales)\n\n' +
+                              '1 = Solo esta vista (los datos en base de datos permanecen)\n' +
+                              '2 = TODO incluyendo base de datos (borra datos de TODAS las sucursales)\n\n' +
                               'Ingrese 1 o 2:';
                 
                 const opcion = prompt(mensaje);
@@ -2195,7 +2195,7 @@
                        'Esto limpiará:\n' +
                        '• Los datos mostrados en pantalla\n' +
                        '• Los archivos cargados\n\n' +
-                       'Los datos en Google Sheets NO se borran.\n' +
+                       'Los datos en base de datos NO se borran.\n' +
                        'Se volverán a cargar en 30 segundos por la sincronización automática.')) {
                 
                 // Desactivar sincronización temporalmente
@@ -2225,14 +2225,14 @@
                     });
                 }, 3000);
                 
-                console.log('🗑️ Vista local limpiada (Google Sheets intacto)');
-                alert('✅ Vista limpiada.\n\nNota: Los datos en Google Sheets permanecen.\nSe recargarán automáticamente en 3 segundos.');
+                console.log('🗑️ Vista local limpiada (base de datos intacto)');
+                alert('✅ Vista limpiada.\n\nNota: Los datos en base de datos permanecen.\nSe recargarán automáticamente en 3 segundos.');
             }
         }
 
         async function limpiarTodoConConfirmacion() {
             if (confirm('⚠️ ADVERTENCIA CRÍTICA ⚠️\n\n' +
-                       'Esto borrará TODOS los datos del mes actual de Google Sheets.\n' +
+                       'Esto borrará TODOS los datos del mes actual de base de datos.\n' +
                        'Todas las sucursales perderán sus datos de este mes.\n\n' +
                        'Esta acción NO se puede deshacer.\n\n' +
                        '¿Está ABSOLUTAMENTE seguro?')) {
@@ -2253,7 +2253,7 @@
                         sincronizacionActiva = false;
                         console.log('⏸️ Sincronización automática desactivada temporalmente');
                         
-                        // Borrar de Google Sheets
+                        // Borrar de base de datos
                         const borradoExitoso = await borrarDatosGoogleSheets(mesSeleccionado);
                         
                         if (borradoExitoso) {
@@ -2277,14 +2277,14 @@
                                 console.log('▶️ Sincronización automática reactivada');
                             }, 3000);
                             
-                            console.log('🗑️ Sistema y Google Sheets limpiados completamente');
+                            console.log('🗑️ Sistema y base de datos limpiados completamente');
                             alert('✅ DATOS BORRADOS EXITOSAMENTE\n\n' +
-                                  `Se borraron todos los datos del mes ${mesSeleccionado} de Google Sheets.\n\n` +
+                                  `Se borraron todos los datos del mes ${mesSeleccionado} de base de datos.\n\n` +
                                   'La vista local también fue limpiada.');
                         } else {
                             // Si falla, reactivar sincronización
                             sincronizacionActiva = true;
-                            alert('❌ Error al borrar datos de Google Sheets.\n\nPor favor, intente nuevamente o borre manualmente desde la hoja.');
+                            alert('❌ Error al borrar datos de base de datos.\n\nPor favor, intente nuevamente o borre manualmente desde la hoja.');
                         }
                         
                     } catch (error) {
