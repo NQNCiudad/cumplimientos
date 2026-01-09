@@ -138,6 +138,204 @@
             background: #c0392b;
         }
 
+        .btn-warning {
+            background: #ff9800;
+            border-color: #ff9800;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #f57c00;
+        }
+
+        /* Modal de borrado */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.5em;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #95a5a6;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .modal-section {
+            margin-bottom: 25px;
+        }
+
+        .modal-section h3 {
+            color: #34495e;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+        }
+
+        .sucursal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .sucursal-btn {
+            padding: 10px;
+            border: 2px solid #bdc3c7;
+            background: white;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #2c3e50;
+        }
+
+        .sucursal-btn:hover {
+            border-color: #3498db;
+            background: #ebf5fb;
+            transform: translateY(-2px);
+        }
+
+        .sucursal-btn.selected {
+            background: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+
+        .proveedor-grid {
+            display: grid;
+            gap: 10px;
+        }
+
+        .proveedor-btn {
+            padding: 15px;
+            border: 2px solid #bdc3c7;
+            background: white;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #2c3e50;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .proveedor-btn:hover:not(.disabled) {
+            border-color: #e74c3c;
+            background: #fef5e7;
+            transform: translateX(5px);
+        }
+
+        .proveedor-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #ecf0f1;
+        }
+
+        .proveedor-badge {
+            background: #3498db;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .modal-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #856404;
+            font-size: 0.9em;
+        }
+
+        .modal-warning {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            color: #721c24;
+            font-size: 0.9em;
+        }
+
         .actions {
             text-align: center;
             margin: 20px 0;
@@ -348,10 +546,10 @@
         
         <div style="text-align: center; margin: 15px 0;">
             <p style="color: #27ae60; font-size: 0.9em; font-weight: bold;">
-                ✅ Los datos se acumulan: puedes cargar PDFs de diferentes proveedores y la tabla se va completando
+                ✅ Los datos se acumulan: se pueden cargar PDFs de diferentes proveedores y la tabla se va completando
             </p>
             <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 5px;">
-                💾 <strong>Sincronización en línea:</strong> Los datos se guardan en Google Sheets y son visibles para todos
+                💾 <strong>Sincronización en línea:</strong> Los datos se guardan en línea y son visibles para todos
             </p>
         </div>
 
@@ -461,6 +659,39 @@
             <div style="font-size: 4em;">📋</div>
             <h3>No hay datos cargados</h3>
             <p>Seleccione los PDFs de recepciones para generar el consolidado de cumplimientos</p>
+        </div>
+    </div>
+
+    <!-- Modal para borrar datos -->
+    <div id="modalBorrar" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🗑️ Borrar Datos Cargados</h2>
+                <button class="modal-close" onclick="cerrarModalBorrar()">×</button>
+            </div>
+
+            <div class="modal-info">
+                ℹ️ Seleccione la sucursal y el proveedor que desea borrar
+            </div>
+
+            <div class="modal-section">
+                <h3>1. Sucursal:</h3>
+                <div class="sucursal-grid" id="sucursalGrid"></div>
+            </div>
+
+            <div class="modal-section">
+                <h3>2. Proveedor:</h3>
+                <div class="proveedor-grid" id="proveedorGrid"></div>
+            </div>
+
+            <div class="modal-warning" id="advertencia" style="display: none;">
+                <strong>⚠️ Advertencia:</strong> Se borrarán los datos de <strong id="resumenBorrado"></strong>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="cerrarModalBorrar()">Cancelar</button>
+                <button class="btn btn-danger" id="btnConfirmarBorrado" onclick="confirmarBorrado()" disabled>Borrar Datos</button>
+            </div>
         </div>
     </div>
 
@@ -621,7 +852,11 @@
         async function borrarDatosEspecificos(sucursal, proveedor, mes) {
             try {
                 actualizarEstadoGS('Borrando...', 'saving');
-                console.log(`🗑️ Borrando: Sucursal ${sucursal}, Proveedor ${proveedor}, Mes ${mes}`);
+                console.log('========================================');
+                console.log('🗑️ INICIANDO BORRADO');
+                console.log(`Sucursal: [${sucursal}]`);
+                console.log(`Proveedor: [${proveedor}]`);
+                console.log(`Mes: [${mes}]`);
                 
                 const params = new URLSearchParams({
                     action: 'delete_specific',
@@ -631,21 +866,35 @@
                 });
                 
                 const fullUrl = `${GOOGLE_SHEETS_URL}?${params.toString()}`;
+                console.log('URL completa:', fullUrl);
+                
+                console.log('📡 Enviando petición a Google Sheets...');
                 const response = await fetch(fullUrl);
+                console.log('📥 Respuesta recibida, status:', response.status);
+                
                 const result = await response.json();
+                console.log('📊 Resultado parseado:', result);
                 
                 if (result.success) {
                     console.log('✅ Datos borrados exitosamente');
+                    console.log(`   Filas borradas: ${result.borrados || 1}`);
                     actualizarEstadoGS('Sincronizado', 'success');
+                    console.log('========================================');
                     return true;
                 } else {
                     console.error('❌ Error al borrar:', result);
+                    console.error('   Mensaje:', result.error || 'Sin mensaje de error');
                     actualizarEstadoGS('Error al borrar', 'error');
+                    console.log('========================================');
                     return false;
                 }
             } catch (error) {
-                console.error('❌ Error al borrar datos:', error);
+                console.error('❌ Excepción al borrar datos:', error);
+                console.error('   Tipo:', error.name);
+                console.error('   Mensaje:', error.message);
+                console.error('   Stack:', error.stack);
                 actualizarEstadoGS('Error al borrar', 'error');
+                console.log('========================================');
                 return false;
             }
         }
@@ -1742,55 +1991,77 @@
             const sucursalesTexto = SUCURSALES_SISTEMA.join(', ');
             
             const sucursal = prompt(
-                '🔍 BORRAR DATOS CARGADOS\n\n' +
+                '🔍 BORRAR DATOS CARGADOS - PASO 1/2\n\n' +
                 'Ingrese el código de sucursal (3 dígitos):\n\n' +
-                'Sucursales: ' + sucursalesTexto
+                'Sucursales disponibles:\n' + sucursalesTexto
             );
             
             if (!sucursal) {
                 return; // Usuario canceló
             }
             
-            // Validar formato de sucursal
-            const sucursalFormateada = String(sucursal).padStart(3, '0');
+            // Validar y formatear sucursal
+            const sucursalFormateada = String(sucursal).trim().padStart(3, '0');
             
             if (!SUCURSALES_SISTEMA.includes(sucursalFormateada)) {
                 alert('❌ Sucursal inválida.\n\nDebe ser una de: ' + sucursalesTexto);
                 return;
             }
             
-            // Listar proveedores disponibles
-            const proveedoresTexto = PROVEEDORES.join(', ');
+            // Obtener proveedores que tienen datos para esta sucursal
+            const proveedoresDisponibles = [];
+            if (datosConsolidados[sucursalFormateada]) {
+                for (const prov of PROVEEDORES) {
+                    if (datosConsolidados[sucursalFormateada][prov] !== undefined) {
+                        proveedoresDisponibles.push(prov);
+                    }
+                }
+            }
             
-            const proveedor = prompt(
-                '🔍 BORRAR DATOS CARGADOS\n\n' +
-                `Sucursal: ${sucursalFormateada}\n\n` +
-                'Ingrese el nombre del proveedor:\n\n' +
-                'Proveedores:\n' +
-                '• CCU\n' +
-                '• QUILMES\n' +
-                '• COCA COLA\n' +
-                '• DANONE\n' +
-                '• MASTELLONE'
-            );
+            if (proveedoresDisponibles.length === 0) {
+                alert(
+                    '⚠️ NO HAY DATOS\n\n' +
+                    `La sucursal ${sucursalFormateada} no tiene datos cargados en este mes.\n\n` +
+                    'No hay nada que borrar.'
+                );
+                return;
+            }
             
-            if (!proveedor) {
+            // Mostrar lista numerada de proveedores disponibles
+            let mensajeProveedores = '🔍 BORRAR DATOS CARGADOS - PASO 2/2\n\n';
+            mensajeProveedores += `Sucursal: ${sucursalFormateada}\n`;
+            mensajeProveedores += `Mes: ${mesSeleccionado}\n\n`;
+            mensajeProveedores += 'PROVEEDORES CON DATOS CARGADOS:\n\n';
+            
+            proveedoresDisponibles.forEach((prov, index) => {
+                const cumplimiento = datosConsolidados[sucursalFormateada][prov];
+                mensajeProveedores += `${index + 1}. ${prov} (${cumplimiento}%)\n`;
+            });
+            
+            mensajeProveedores += '\n¿Cuál desea borrar? Ingrese el número (1, 2, 3...):';
+            
+            const opcion = prompt(mensajeProveedores);
+            
+            if (!opcion) {
                 return; // Usuario canceló
             }
             
-            // Normalizar proveedor (mayúsculas)
-            const proveedorNormalizado = proveedor.trim().toUpperCase();
-            
-            if (!PROVEEDORES.includes(proveedorNormalizado)) {
-                alert('❌ Proveedor inválido.\n\nDebe ser uno de: ' + proveedoresTexto);
+            // Validar opción
+            const numeroOpcion = parseInt(opcion);
+            if (isNaN(numeroOpcion) || numeroOpcion < 1 || numeroOpcion > proveedoresDisponibles.length) {
+                alert(`❌ Opción inválida.\n\nDebe ingresar un número entre 1 y ${proveedoresDisponibles.length}`);
                 return;
             }
+            
+            const proveedorSeleccionado = proveedoresDisponibles[numeroOpcion - 1];
+            const cumplimientoActual = datosConsolidados[sucursalFormateada][proveedorSeleccionado];
             
             // Confirmar borrado
             const confirmacion = confirm(
                 '⚠️ CONFIRMAR BORRADO\n\n' +
                 `Sucursal: ${sucursalFormateada}\n` +
-                `Proveedor: ${proveedorNormalizado}\n` +
+                `Proveedor: ${proveedorSeleccionado}\n` +
+                `Cumplimiento actual: ${cumplimientoActual}%\n` +
                 `Mes: ${mesSeleccionado}\n\n` +
                 '¿Está seguro que desea borrar estos datos?\n\n' +
                 'Esta acción eliminará el registro de Google Sheets.'
@@ -1802,42 +2073,49 @@
             
             // Desactivar sincronización temporalmente
             sincronizacionActiva = false;
+            console.log('⏸️ Sincronización desactivada para borrado');
             
             // Borrar de Google Sheets
-            const exitoso = await borrarDatosEspecificos(sucursalFormateada, proveedorNormalizado, mesSeleccionado);
+            const exitoso = await borrarDatosEspecificos(sucursalFormateada, proveedorSeleccionado, mesSeleccionado);
             
             if (exitoso) {
                 // Limpiar de la vista local también
                 if (datosConsolidados[sucursalFormateada]) {
-                    delete datosConsolidados[sucursalFormateada][proveedorNormalizado];
+                    delete datosConsolidados[sucursalFormateada][proveedorSeleccionado];
+                    console.log(`🗑️ Borrado local: ${sucursalFormateada} - ${proveedorSeleccionado}`);
                 }
                 
                 // Recargar datos y regenerar tabla
+                console.log('🔄 Recargando datos desde Google Sheets...');
                 await cargarDatosGoogleSheets();
                 generarTabla();
                 
                 // Reactivar sincronización
                 setTimeout(() => {
                     sincronizacionActiva = true;
+                    console.log('▶️ Sincronización reactivada');
                 }, 2000);
                 
                 alert(
                     '✅ DATOS BORRADOS EXITOSAMENTE\n\n' +
-                    `Sucursal ${sucursalFormateada} - ${proveedorNormalizado}\n` +
-                    'Mes: ' + mesSeleccionado + '\n\n' +
+                    `Sucursal: ${sucursalFormateada}\n` +
+                    `Proveedor: ${proveedorSeleccionado}\n` +
+                    `Mes: ${mesSeleccionado}\n\n` +
                     'La tabla se ha actualizado.'
                 );
             } else {
                 // Reactivar sincronización aunque falle
                 sincronizacionActiva = true;
+                console.log('▶️ Sincronización reactivada (después de error)');
                 
                 alert(
                     '❌ ERROR AL BORRAR\n\n' +
-                    'No se pudieron borrar los datos.\n' +
+                    'No se pudieron borrar los datos.\n\n' +
                     'Posibles causas:\n' +
                     '• Los datos no existen en Google Sheets\n' +
-                    '• Error de conexión\n\n' +
-                    'Intente nuevamente o verifique en Google Sheets.'
+                    '• Error de conexión\n' +
+                    '• El Apps Script no está actualizado\n\n' +
+                    'Intente nuevamente o contacte al administrador.'
                 );
             }
         }
