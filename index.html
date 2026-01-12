@@ -813,24 +813,24 @@
                 });
                 
                 console.log(`📤 Enviando ${datosParaGuardar.length} registros a Google Sheets`);
+                console.log('📊 Tamaño de datos:', JSON.stringify(datosParaGuardar).length, 'caracteres');
                 
-                // Usar GET con parámetros codificados en lugar de POST
-                const params = new URLSearchParams({
-                    action: 'save',
-                    data: JSON.stringify(datosParaGuardar)
-                });
-                
-                const fullUrl = `${GOOGLE_SHEETS_URL}?${params.toString()}`;
+                // Usar POST para evitar límite de longitud de URL
+                const formData = new URLSearchParams();
+                formData.append('action', 'save');
+                formData.append('data', JSON.stringify(datosParaGuardar));
                 
                 console.log('📡 URL de guardado:', GOOGLE_SHEETS_URL);
-                console.log('📊 Tamaño de datos:', JSON.stringify(datosParaGuardar).length, 'caracteres');
+                console.log('🔄 Método: POST (evita límite de URL)');
                 
                 // Intentar fetch con timeout de 60 segundos (Google Apps Script puede ser lento)
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 segundos
                 
                 try {
-                    const response = await fetch(fullUrl, {
+                    const response = await fetch(GOOGLE_SHEETS_URL, {
+                        method: 'POST',
+                        body: formData,
                         signal: controller.signal
                     });
                     clearTimeout(timeoutId);
