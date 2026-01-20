@@ -38,7 +38,7 @@
         th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 10; }
         td { padding: 12px; text-align: center; border-bottom: 1px solid #ecf0f1; font-size: 0.9em; }
         tr:hover { background: #f8f9fa; }
-        .sucursal-col { font-weight: bold; color: #2c3e50; text-align: center; }
+        .sucursal-col { font-weight: bold; color: #2c3e50; text-align: left; padding-left: 20px; }
         .cumplimiento-excelente { background: #d4edda; color: #155724; font-weight: bold; }
         .cumplimiento-bueno { background: #fff3cd; color: #856404; font-weight: bold; }
         .cumplimiento-regular { background: #f8d7da; color: #721c24; font-weight: bold; }
@@ -444,11 +444,9 @@
                 const tr = document.createElement('tr');
                 
                 const tdSucursal = document.createElement('td');
-            tdSucursal.style.fontWeight = 'bold';
-            tdSucursal.style.color = '#2c3e50';
-            tdSucursal.style.textAlign = 'center';
-            tdSucursal.textContent = sucursal;
-            tr.appendChild(tdSucursal);
+                tdSucursal.className = 'sucursal-col';
+                tdSucursal.textContent = sucursal;
+                tr.appendChild(tdSucursal);
 
                 PROVEEDORES.forEach(proveedor => {
                     const td = document.createElement('td');
@@ -629,10 +627,9 @@
             const sucursalesOrdenadas = sucursalesZona.filter(s => SUCURSALES_SISTEMA.includes(s));
 
             sucursalesOrdenadas.forEach((sucursal, index) => {
-            const fila = worksheet.getRow(4 + index);
-            fila.getCell(1).value = sucursal;
-            fila.getCell(1).font = { bold: true };
-            fila.getCell(1).alignment = { horizontal: 'center' };
+                const fila = worksheet.getRow(4 + index);
+                fila.getCell(1).value = sucursal;
+                fila.getCell(1).font = { bold: true };
 
                 PROVEEDORES.forEach((proveedor, colIndex) => {
                     const cell = fila.getCell(2 + colIndex);
@@ -675,247 +672,122 @@
                     cell.alignment = { horizontal: 'center' };
                 });
             });
-async function exportarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4');
-    
-    const mesSeleccionado = document.getElementById('monthInput').value;
-    const [año, mes] = mesSeleccionado.split('-');
-    const nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const nombreMes = nombresMeses[parseInt(mes) - 1];
-    
-    // Título
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text('CONSOLIDADO DE CUMPLIMIENTOS', 148, 12, { align: 'center' });
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Período: ${nombreMes} ${año}`, 148, 18, { align: 'center' });
-    doc.text(`Zona: ${zonaSeleccionada}`, 148, 23, { align: 'center' });
-    
-    // Calcular cumplimiento global
-    const sucursalesZona = ZONAS[zonaSeleccionada] || SUCURSALES_SISTEMA;
-    const sucursalesOrdenadas = sucursalesZona.filter(s => SUCURSALES_SISTEMA.includes(s));
-    
-    let totalCumplimientos = 0;
-    let cantidadCeldas = 0;
-    
-    sucursalesOrdenadas.forEach(sucursal => {
-        PROVEEDORES.forEach(proveedor => {
-            const esND = SUCURSALES_NO_DISPONIBLE[sucursal]?.includes(proveedor);
-            const esRA = SUCURSALES_RA[proveedor]?.includes(sucursal);
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `Consolidado_${año}_${mes}_${zonaSeleccionada}.xlsx`);
+        }
+
+        async function exportarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
             
-            if (!esND && !esRA) {
-                const datos = datosConsolidados[sucursal]?.[proveedor];
-                if (datos) {
-                    const cumplimiento = Math.round((datos.recibidoTotal / datos.pedidoTotal) * 100);
-                    totalCumplimientos += cumplimiento;
-                    cantidadCeldas++;
-                }
-            }
-        });
-    });
-    
-    const cumplimientoGlobal = cantidadCeldas > 0 ? Math.round(totalCumplimientos / cantidadCeldas) : 0;
-    
-    // Dibujar globo de cumplimiento global
-    const globoX = 260;
-    const globoY = 15;
-    const globoRadius = 12;
-    
-    // Determinar color del globo
-    let globoColor;
-    if (cumplimientoGlobal >= 90) {
-        globoColor = [129, 199, 132]; // Verde
-    } else if (cumplimientoGlobal >= 75) {
-        globoColor = [255, 213, 79]; // Amarillo
-    } else {
-        globoColor = [229, 115, 115]; // Rojo
-    }
-    
-    doc.setFillColor(...globoColor);
-    doc.circle(globoX, globoY, globoRadius, 'F');
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text(`${cumplimientoGlobal}%`, globoX, globoY + 1, { align: 'center', baseline: 'middle' });
-    
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'normal');
-    doc.text('Global', globoX, globoY + 10, { align: 'center' });
-    
-    // Preparar datos para la tabla
-    const headers = [['Sucursal', 'CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE']];
-    const rows = [];
-    
-    sucursalesOrdenadas.forEach(sucursal => {
-        const fila = [sucursal];
-        
-        PROVEEDORES.forEach(proveedor => {
-            const esND = SUCURSALES_NO_DISPONIBLE[sucursal]?.includes(proveedor);
-            const esRA = SUCURSALES_RA[proveedor]?.includes(sucursal);
+            const mesSeleccionado = document.getElementById('monthInput').value;
+            const [año, mes] = mesSeleccionado.split('-');
+            const nombresMeses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            const nombreMes = nombresMeses[parseInt(mes) - 1];
             
-            if (esND) {
-                fila.push('N/R');
-            } else if (esRA) {
-                fila.push('RA');
-            } else {
-                const datos = datosConsolidados[sucursal]?.[proveedor];
-                const cumplimiento = datos ? 
-                    Math.round((datos.recibidoTotal / datos.pedidoTotal) * 100) : 
-                    undefined;
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text('CONSOLIDADO DE CUMPLIMIENTOS', 148, 15, { align: 'center' });
+            
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Período: ${nombreMes} ${año}`, 148, 22, { align: 'center' });
+            doc.text(`Zona: ${zonaSeleccionada}`, 148, 28, { align: 'center' });
+            
+            const sucursalesZona = ZONAS[zonaSeleccionada] || SUCURSALES_SISTEMA;
+            const sucursalesOrdenadas = sucursalesZona.filter(s => SUCURSALES_SISTEMA.includes(s));
+            
+            const headers = [['Sucursal', 'CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE']];
+            const rows = [];
+            
+            sucursalesOrdenadas.forEach(sucursal => {
+                const fila = [sucursal];
                 
-                fila.push(cumplimiento !== undefined ? cumplimiento + '%' : '-');
-            }
-        });
-        
-        rows.push(fila);
-    });
-    
-    // Generar tabla
-    const finalY = doc.autoTable({
-        head: headers,
-        body: rows,
-        startY: 30,
-        theme: 'grid',
-        headStyles: {
-            fillColor: [102, 126, 234],
-            textColor: 255,
-            fontStyle: 'bold',
-            halign: 'center'
-        },
-        bodyStyles: {
-            halign: 'center',
-            fontSize: 9
-        },
-        columnStyles: {
-            0: { fontStyle: 'bold', halign: 'center' }  // ← CENTRADO
-        },
-        didParseCell: function(data) {
-            if (data.section === 'body' && data.column.index > 0) {
-                const valor = data.cell.raw;
-                
-                if (valor === 'N/R') {
-                    data.cell.styles.fillColor = [245, 245, 245];
-                    data.cell.styles.textColor = [158, 158, 158];
-                } else if (valor === 'RA') {
-                    data.cell.styles.fillColor = [227, 242, 253];
-                    data.cell.styles.textColor = [21, 101, 192];
-                } else if (valor !== '-') {
-                    const num = parseInt(valor);
-                    if (num >= 90) {
-                        data.cell.styles.fillColor = [212, 237, 218];
-                        data.cell.styles.textColor = [21, 87, 36];
-                        data.cell.styles.fontStyle = 'bold';
-                    } else if (num >= 75) {
-                        data.cell.styles.fillColor = [255, 243, 205];
-                        data.cell.styles.textColor = [133, 100, 4];
-                        data.cell.styles.fontStyle = 'bold';
+                PROVEEDORES.forEach(proveedor => {
+                    const esND = SUCURSALES_NO_DISPONIBLE[sucursal]?.includes(proveedor);
+                    const esRA = SUCURSALES_RA[proveedor]?.includes(sucursal);
+                    
+                    if (esND) {
+                        fila.push('N/R');
+                    } else if (esRA) {
+                        fila.push('RA');
                     } else {
-                        data.cell.styles.fillColor = [248, 215, 218];
-                        data.cell.styles.textColor = [114, 28, 36];
-                        data.cell.styles.fontStyle = 'bold';
+                        const datos = datosConsolidados[sucursal]?.[proveedor];
+                        const cumplimiento = datos ? 
+                            Math.round((datos.recibidoTotal / datos.pedidoTotal) * 100) : 
+                            undefined;
+                        
+                        fila.push(cumplimiento !== undefined ? cumplimiento + '%' : '-');
                     }
-                } else {
-                    data.cell.styles.fillColor = [233, 236, 239];
-                    data.cell.styles.textColor = [108, 117, 125];
-                }
-            }
-        }
-    });
-    
-    // Calcular promedios por proveedor para el gráfico
-    const promediosPorProveedor = {};
-    PROVEEDORES.forEach(p => {
-        let totalCumplimiento = 0;
-        let contadorSucursales = 0;
-        
-        sucursalesOrdenadas.forEach(s => {
-            const datos = datosConsolidados[s]?.[p];
-            
-            if (datos !== undefined) {
-                let cumplimiento;
-                if (typeof datos === 'object' && datos.pedidoTotal !== undefined) {
-                    cumplimiento = datos.pedidoTotal > 0 ? 
-                        Math.round((datos.recibidoTotal / datos.pedidoTotal) * 100) : 0;
-                } else {
-                    cumplimiento = datos;
-                }
+                });
                 
-                totalCumplimiento += cumplimiento;
-                contadorSucursales++;
+                rows.push(fila);
+            });
+            
+            doc.autoTable({
+                head: headers,
+                body: rows,
+                startY: 35,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [102, 126, 234],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                bodyStyles: {
+                    halign: 'center',
+                    fontSize: 9
+                },
+                columnStyles: {
+                    0: { fontStyle: 'bold', halign: 'left' }
+                },
+                didParseCell: function(data) {
+                    if (data.section === 'body' && data.column.index > 0) {
+                        const valor = data.cell.raw;
+                        
+                        if (valor === 'N/R') {
+                            data.cell.styles.fillColor = [245, 245, 245];
+                            data.cell.styles.textColor = [158, 158, 158];
+                        } else if (valor === 'RA') {
+                            data.cell.styles.fillColor = [227, 242, 253];
+                            data.cell.styles.textColor = [21, 101, 192];
+                        } else if (valor !== '-') {
+                            const num = parseInt(valor);
+                            if (num >= 90) {
+                                data.cell.styles.fillColor = [212, 237, 218];
+                                data.cell.styles.textColor = [21, 87, 36];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else if (num >= 75) {
+                                data.cell.styles.fillColor = [255, 243, 205];
+                                data.cell.styles.textColor = [133, 100, 4];
+                                data.cell.styles.fontStyle = 'bold';
+                            } else {
+                                data.cell.styles.fillColor = [248, 215, 218];
+                                data.cell.styles.textColor = [114, 28, 36];
+                                data.cell.styles.fontStyle = 'bold';
+                            }
+                        } else {
+                            data.cell.styles.fillColor = [233, 236, 239];
+                            data.cell.styles.textColor = [108, 117, 125];
+                        }
+                    }
+                }
+            });
+            
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(128);
+                doc.text(`Página ${i} de ${pageCount}`, 148, 200, { align: 'center' });
+                doc.text(`Generado: ${new Date().toLocaleString('es-AR')}`, 148, 205, { align: 'center' });
             }
-        });
-        
-        promediosPorProveedor[p] = contadorSucursales > 0 ? 
-            Math.round(totalCumplimiento / contadorSucursales) : 0;
-    });
-    
-    // Añadir gráfico
-    const startYGrafico = finalY.finalY + 10;
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Cumplimiento por Proveedor', 148, startYGrafico, { align: 'center' });
-    
-    const barWidth = 40;
-    const barSpacing = 10;
-    const maxBarHeight = 60;
-    const baseY = startYGrafico + 70;
-    const startX = 30;
-    
-    PROVEEDORES.forEach((proveedor, index) => {
-        const cumplimiento = promediosPorProveedor[proveedor];
-        const barHeight = (cumplimiento / 100) * maxBarHeight;
-        const x = startX + (index * (barWidth + barSpacing));
-        
-        // Color de la barra
-        let barColor;
-        if (cumplimiento >= 90) {
-            barColor = [129, 199, 132];
-        } else if (cumplimiento >= 75) {
-            barColor = [255, 213, 79];
-        } else if (cumplimiento > 0) {
-            barColor = [229, 115, 115];
-        } else {
-            barColor = [189, 189, 189];
+            
+            doc.save(`Consolidado_${año}_${mes}_${zonaSeleccionada}.pdf`);
         }
-        
-        // Dibujar barra
-        doc.setFillColor(...barColor);
-        doc.rect(x, baseY - barHeight, barWidth, barHeight, 'F');
-        
-        // Porcentaje encima de la barra
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.setTextColor(0, 0, 0);
-        doc.text(`${cumplimiento}%`, x + barWidth/2, baseY - barHeight - 3, { align: 'center' });
-        
-        // Nombre del proveedor debajo
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        doc.text(proveedor, x + barWidth/2, baseY + 5, { align: 'center' });
-    });
-    
-    // Línea base del gráfico
-    doc.setDrawColor(150, 150, 150);
-    doc.line(startX - 5, baseY, startX + (PROVEEDORES.length * (barWidth + barSpacing)), baseY);
-    
-    // Footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(128);
-        doc.text(`Página ${i} de ${pageCount}`, 148, 200, { align: 'center' });
-        doc.text(`Generado: ${new Date().toLocaleString('es-AR')}`, 148, 205, { align: 'center' });
-    }
-    
-    doc.save(`Consolidado_${año}_${mes}_${zonaSeleccionada}.pdf`);
-}
 
         async function borrarDatosCargados() {
             const mesSeleccionado = document.getElementById('monthInput').value;
