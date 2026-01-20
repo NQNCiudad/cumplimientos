@@ -509,7 +509,7 @@
 <body>
     <div class="container">
         <h1>📊 CONSOLIDADO DE CUMPLIMIENTOS</h1>
-        <div class="subtitle">Sistema de Análisis de Proveedores por Sucursal - SAIEP</div>
+        <div class="subtitle">Sistema de Análisis de Proveedores por Sucursal - Neuquén Ciudad SAIEP</div>
 
         <div class="upload-section">
             <h2>📁 Cargar PDFs de Recepciones</h2>
@@ -546,10 +546,10 @@
         
         <div style="text-align: center; margin: 15px 0;">
             <p style="color: #27ae60; font-size: 0.9em; font-weight: bold;">
-                ✅ Los datos se acumulan: puedes cargar PDFs de diferentes proveedores y la tabla se va completando
+                ✅ Los datos se acumulan: se pueden cargar PDFs de diferentes proveedores y la tabla se va completando
             </p>
             <p style="color: #7f8c8d; font-size: 0.9em; margin-top: 5px;">
-                💾 <strong>Sincronización en línea:</strong> Los datos se guardan en Google Sheets y son visibles para todos
+                💾 <strong>Sincronización en línea:</strong> Los datos se guardan en base de datos y son visibles para todos
             </p>
         </div>
 
@@ -1293,8 +1293,27 @@
                     if (!datosConsolidados[sucursal]) {
                         datosConsolidados[sucursal] = {};
                     }
-                    datosConsolidados[sucursal][proveedor] = cumplimiento;
-                    console.log(`   ✅ DATOS ALMACENADOS: Suc ${sucursal} - ${proveedor}: ${cumplimiento}%`);
+                    
+                    // 🌟 ACUMULAR en lugar de reemplazar
+                    if (datosConsolidados[sucursal][proveedor] === undefined) {
+                        // Primera vez - crear nuevo
+                        datosConsolidados[sucursal][proveedor] = {
+                            pedidoTotal: pedido,
+                            recibidoTotal: recibido
+                        };
+                        console.log(`   ✅ NUEVO: Suc ${sucursal} - ${proveedor}`);
+                    } else {
+                        // Ya existe - SUMAR
+                        datosConsolidados[sucursal][proveedor].pedidoTotal += pedido;
+                        datosConsolidados[sucursal][proveedor].recibidoTotal += recibido;
+                        console.log(`   ➕ SUMADO: Suc ${sucursal} - ${proveedor}`);
+                    }
+                    
+                    // Recalcular cumplimiento total
+                    const pedTotal = datosConsolidados[sucursal][proveedor].pedidoTotal;
+                    const recTotal = datosConsolidados[sucursal][proveedor].recibidoTotal;
+                    const cumplTotal = pedTotal > 0 ? Math.round((recTotal / pedTotal) * 100) : 0;
+                    console.log(`   📊 ACUMULADO: P=${pedTotal}, R=${recTotal}, C=${cumplTotal}%`);
                 } else {
                     console.log(`   ⚠️ No se almacenó (falta proveedor o sucursal)`);
                 }
@@ -1361,7 +1380,10 @@
                             td.style.fontWeight = 'bold';
                             td.style.fontSize = '0.85em';
                         } else {
-                            const cumplimiento = datosConsolidados[sucursal]?.[proveedor];
+const datos = datosConsolidados[sucursal]?.[proveedor];
+                            const cumplimiento = datos ? 
+                                Math.round((datos.recibidoTotal / datos.pedidoTotal) * 100) : 
+                                undefined;
                             
                             // Log para debugging
                             if (sucursal === '006' && proveedor === 'CCU') {
