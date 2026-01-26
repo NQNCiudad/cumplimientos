@@ -1067,18 +1067,20 @@ PROVEEDORES.forEach((proveedor, index) => {
             const clave = prompt('🔐 Contraseña de administrador:');
             if (clave === 'admin2026') {
                 const mesSeleccionado = document.getElementById('monthInput').value;
-                if (confirm(`¿Limpiar todos los datos del mes ${mesSeleccionado}?\n\n⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER`)) {
+                const sucursalesZona = ZONAS[zonaSeleccionada];
+                
+                if (confirm(`¿Limpiar todos los datos de ${zonaSeleccionada} del mes ${mesSeleccionado}?\n\n⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER\n\nSe eliminarán ${sucursalesZona.length} sucursales`)) {
                     try {
-                        // Limpiar datos locales
-                        datosConsolidados = {};
-                        SUCURSALES_SISTEMA.forEach(suc => {
+                        // Limpiar datos locales de la zona
+                        sucursalesZona.forEach(suc => {
                             datosConsolidados[suc] = {};
                         });
                         
-                        // Limpiar en Google Sheets
+                        // Limpiar en Google Sheets por zona
                         const formData = new URLSearchParams();
-                        formData.append('action', 'delete_month');
+                        formData.append('action', 'delete_zone');
                         formData.append('mes', mesSeleccionado);
+                        formData.append('sucursales', JSON.stringify(sucursalesZona));
                         
                         const response = await fetch(GOOGLE_SHEETS_URL, {
                             method: 'POST',
@@ -1088,7 +1090,7 @@ PROVEEDORES.forEach((proveedor, index) => {
                         const result = await response.json();
                         
                         if (result.success) {
-                            alert(`✅ Todos los datos del mes ${mesSeleccionado} han sido eliminados exitosamente`);
+                            alert(`✅ Datos de ${zonaSeleccionada} del mes ${mesSeleccionado} eliminados exitosamente\n\n${result.eliminados} registros eliminados`);
                             generarTabla();
                         } else {
                             alert('⚠️ Datos locales limpiados, pero hubo un error al limpiar Google Sheets');
