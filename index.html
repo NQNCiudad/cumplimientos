@@ -170,7 +170,7 @@
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div style="width: 20px; height: 20px; background: #e3f2fd; border-radius: 4px; border: 2px solid #1565c0;"></div>
-                        <span style="color: #2c3e50; font-size: 0.9em;"><strong>RA</strong> Reposición Asistida</span>
+                        <span style="color: #2c3e50; font-size: 0.9em;"><strong>RA</strong> Reparto Automático</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <div style="width: 20px; height: 20px; background: #f5f5f5; border-radius: 4px; border: 2px solid #9e9e9e;"></div>
@@ -216,6 +216,9 @@
 
         let datosConsolidados = {};
         let archivosSeleccionados = [];
+        let ordenesProceadas = {}; // Registro de órdenes por sucursal-proveedor
+        let archivosProcesados = []; // Archivos procesados exitosamente
+        let archivosDuplicados = []; // Archivos rechazados por duplicado
 
         const SUCURSALES_SISTEMA = [
             '006','068','162','225','226','229','232','233','235','236','237','239','240','248','254',
@@ -303,9 +306,27 @@
             document.getElementById('loading').style.display = 'block';
             document.getElementById('emptyState').style.display = 'none';
 
+            // Reset de contadores
+            archivosProcesados = [];
+            archivosDuplicados = [];
+
             for (const archivo of archivosSeleccionados) {
                 await procesarUnPDF(archivo);
             }
+
+            // Mostrar resumen
+            let mensaje = '📊 RESUMEN DE PROCESAMIENTO\n\n';
+            mensaje += `✅ Archivos procesados: ${archivosProcesados.length}\n`;
+            
+            if (archivosDuplicados.length > 0) {
+                mensaje += `⚠️ Archivos duplicados rechazados: ${archivosDuplicados.length}\n\n`;
+                mensaje += 'DUPLICADOS:\n';
+                archivosDuplicados.forEach(d => {
+                    mensaje += `• ${d.archivo}\n  Suc: ${d.sucursal} | Prov: ${d.proveedor} | Orden: ${d.orden}\n`;
+                });
+            }
+            
+            alert(mensaje);
 
             generarTabla();
             await guardarEnGoogleSheets();
@@ -351,6 +372,10 @@
                 sucursal = matchSucursal[1].trim().padStart(3, '0');
             }
 
+            // Extraer número de orden (el primero que aparece en la tabla)
+            const matchOrden = texto.match(/(\d{7})\s+\d{6,7}\s+/);
+            const numeroOrden = matchOrden ? matchOrden[1] : null;
+
             const matchTotales = texto.match(/TOTA\s*LES?\s+(\d+)\s+(\d+)/i);
             
             if (matchTotales) {
@@ -358,6 +383,28 @@
                 const recibido = parseInt(matchTotales[2]);
 
                 if (proveedor && sucursal && SUCURSALES_SISTEMA.includes(sucursal)) {
+                    // Verificar duplicados
+                    const clave = `${sucursal}-${proveedor}`;
+                    
+                    if (!ordenesProceadas[clave]) {
+                        ordenesProceadas[clave] = new Set();
+                    }
+                    
+                    if (numeroOrden && ordenesProceadas[clave].has(numeroOrden)) {
+                        console.warn(`⚠️ Orden ${numeroOrden} duplicada para ${sucursal}-${proveedor}`);
+                        archivosDuplicados.push({
+                            archivo: nombreArchivo,
+                            sucursal: sucursal,
+                            proveedor: proveedor,
+                            orden: numeroOrden
+                        });
+                        return; // No procesar duplicado
+                    }
+                    
+                    if (numeroOrden) {
+                        ordenesProceadas[clave].add(numeroOrden);
+                    }
+                    
                     if (!datosConsolidados[sucursal]) {
                         datosConsolidados[sucursal] = {};
                     }
@@ -371,6 +418,13 @@
                         datosConsolidados[sucursal][proveedor].pedidoTotal += pedido;
                         datosConsolidados[sucursal][proveedor].recibidoTotal += recibido;
                     }
+                    
+                    archivosProcesados.push({
+                        archivo: nombreArchivo,
+                        sucursal: sucursal,
+                        proveedor: proveedor,
+                        orden: numeroOrden
+                    });
                 }
             }
         }
@@ -397,6 +451,7 @@
                 }
                 
                 datosConsolidados = {};
+                ordenesProceadas = {}; // Reset del registro de órdenes
                 SUCURSALES_SISTEMA.forEach(suc => {
                     datosConsolidados[suc] = {};
                 });
@@ -406,8 +461,18 @@
                         const sucursal = String(fila.Sucursal).padStart(3, '0');
                         const proveedor = fila.Proveedor;
                         const cumplimiento = fila.Cumplimiento;
+                        const orden = fila.Orden; // Nueva columna
                         
                         console.log(`Procesando: Suc ${sucursal}, Prov ${proveedor}, Cumpl ${cumplimiento}`);
+                        
+                        // Registrar orden procesada
+                        if (orden) {
+                            const clave = `${sucursal}-${proveedor}`;
+                            if (!ordenesProceadas[clave]) {
+                                ordenesProceadas[clave] = new Set();
+                            }
+                            ordenesProceadas[clave].add(orden);
+                        }
                         
                         if (cumplimiento !== 'RA' && cumplimiento !== 'N/R' && typeof cumplimiento === 'number') {
                             const pedidoBase = 100;
@@ -422,6 +487,7 @@
                 }
                 
                 console.log('✅ Datos consolidados:', datosConsolidados);
+                console.log('✅ Órdenes registradas:', ordenesProceadas);
                 
                 return true;
             } catch (error) {
@@ -453,13 +519,33 @@
                             cumplimiento = datos;
                         }
                         
-                        datosParaGuardar.push({
-                            Sucursal: sucursal,
-                            Proveedor: proveedor,
-                            Cumplimiento: cumplimiento,
-                            Mes: mesSeleccionado,
-                            Usuario: 'Sistema'
-                        });
+                        // Obtener órdenes procesadas para esta combinación
+                        const clave = `${sucursal}-${proveedor}`;
+                        const ordenes = ordenesProceadas[clave] ? Array.from(ordenesProceadas[clave]) : [];
+                        
+                        // Guardar cada orden como registro separado
+                        if (ordenes.length > 0) {
+                            ordenes.forEach(orden => {
+                                datosParaGuardar.push({
+                                    Sucursal: sucursal,
+                                    Proveedor: proveedor,
+                                    Cumplimiento: cumplimiento,
+                                    Mes: mesSeleccionado,
+                                    Usuario: 'Sistema',
+                                    Orden: orden
+                                });
+                            });
+                        } else {
+                            // Si no hay órdenes registradas, guardar sin orden
+                            datosParaGuardar.push({
+                                Sucursal: sucursal,
+                                Proveedor: proveedor,
+                                Cumplimiento: cumplimiento,
+                                Mes: mesSeleccionado,
+                                Usuario: 'Sistema',
+                                Orden: null
+                            });
+                        }
                     });
                 });
                 
@@ -886,7 +972,7 @@ PROVEEDORES.forEach((proveedor, index) => {
         { color: [212, 237, 218], textColor: [21, 87, 36], label: '90-100% Excelente' },
         { color: [255, 243, 205], textColor: [133, 100, 4], label: '75-89% Bueno' },
         { color: [248, 215, 218], textColor: [114, 28, 36], label: '0-74% Regular' },
-        { color: [227, 242, 253], textColor: [21, 101, 192], label: 'RA Reposición Asistida' },
+        { color: [227, 242, 253], textColor: [21, 101, 192], label: 'RA Reparto Automático' },
         { color: [245, 245, 245], textColor: [158, 158, 158], label: 'N/R No Recibe' }
     ];
     
