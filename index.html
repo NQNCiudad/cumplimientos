@@ -527,7 +527,7 @@
                         if (ordenes.length > 0) {
                             ordenes.forEach(orden => {
                                 datosParaGuardar.push({
-                                    Sucursal: sucursal,
+                                    Sucursal: parseInt(sucursal), // Convertir a número sin ceros
                                     Proveedor: proveedor,
                                     Cumplimiento: cumplimiento,
                                     Mes: mesSeleccionado,
@@ -538,7 +538,7 @@
                         } else {
                             // Si no hay órdenes registradas, guardar sin orden
                             datosParaGuardar.push({
-                                Sucursal: sucursal,
+                                Sucursal: parseInt(sucursal), // Convertir a número sin ceros
                                 Proveedor: proveedor,
                                 Cumplimiento: cumplimiento,
                                 Mes: mesSeleccionado,
@@ -1191,15 +1191,22 @@ PROVEEDORES.forEach((proveedor, index) => {
                 return;
             }
             
+            // Limpiar datos locales
             if (datosConsolidados[sucursal] && datosConsolidados[sucursal][proveedor]) {
                 delete datosConsolidados[sucursal][proveedor];
+            }
+            
+            // Limpiar registro de órdenes local
+            const clave = `${sucursal}-${proveedor}`;
+            if (ordenesProceadas[clave]) {
+                delete ordenesProceadas[clave];
             }
             
             try {
                 const formData = new URLSearchParams();
                 formData.append('action', 'delete_specific');
                 formData.append('mes', mesSeleccionado);
-                formData.append('sucursal', sucursal);
+                formData.append('sucursal', parseInt(sucursal)); // Convertir a número
                 formData.append('proveedor', proveedor);
                 
                 const response = await fetch(GOOGLE_SHEETS_URL, {
@@ -1210,7 +1217,7 @@ PROVEEDORES.forEach((proveedor, index) => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert(`✅ Datos borrados exitosamente:\nSucursal ${sucursal} - ${proveedor}`);
+                    alert(`✅ Datos borrados exitosamente:\nSucursal ${sucursal} - ${proveedor}\n${result.eliminados} registro(s) eliminado(s)`);
                     cerrarModalBorrar();
                     generarTabla();
                 } else {
@@ -1233,13 +1240,24 @@ PROVEEDORES.forEach((proveedor, index) => {
                         // Limpiar datos locales de la zona
                         sucursalesZona.forEach(suc => {
                             datosConsolidados[suc] = {};
+                            
+                            // Limpiar registros de órdenes de esta sucursal
+                            PROVEEDORES.forEach(prov => {
+                                const claveOrden = `${suc}-${prov}`;
+                                if (ordenesProceadas[claveOrden]) {
+                                    delete ordenesProceadas[claveOrden];
+                                }
+                            });
                         });
+                        
+                        // Convertir sucursales a números
+                        const sucursalesNumeros = sucursalesZona.map(s => parseInt(s));
                         
                         // Limpiar en Google Sheets por zona
                         const formData = new URLSearchParams();
                         formData.append('action', 'delete_zone');
                         formData.append('mes', mesSeleccionado);
-                        formData.append('sucursales', JSON.stringify(sucursalesZona));
+                        formData.append('sucursales', JSON.stringify(sucursalesNumeros));
                         
                         const response = await fetch(GOOGLE_SHEETS_URL, {
                             method: 'POST',
