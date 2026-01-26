@@ -217,6 +217,7 @@
         let datosConsolidados = {};
         let archivosSeleccionados = [];
         let ordenesProceadas = {}; // Registro de órdenes por sucursal-proveedor
+        let ordenesNuevas = {}; // NUEVO: Solo las órdenes procesadas en esta sesión
         let archivosProcesados = []; // Archivos procesados exitosamente
         let archivosDuplicados = []; // Archivos rechazados por duplicado
 
@@ -309,6 +310,7 @@
             // Reset de contadores
             archivosProcesados = [];
             archivosDuplicados = [];
+            ordenesNuevas = {}; // NUEVO: Limpiar órdenes nuevas al inicio del procesamiento
 
             for (const archivo of archivosSeleccionados) {
                 await procesarUnPDF(archivo);
@@ -329,7 +331,14 @@
             alert(mensaje);
 
             generarTabla();
-            await guardarEnGoogleSheets();
+            
+            // NUEVO: Guardar solo si hay órdenes nuevas
+            if (Object.keys(ordenesNuevas).length > 0) {
+                console.log('📤 Guardando órdenes nuevas:', ordenesNuevas);
+                await guardarEnGoogleSheets();
+            } else {
+                console.log('ℹ️ No hay órdenes nuevas para guardar');
+            }
             
             archivosSeleccionados = [];
             actualizarListaArchivos();
@@ -403,6 +412,12 @@
                     
                     if (numeroOrden) {
                         ordenesProceadas[clave].add(numeroOrden);
+                        
+                        // NUEVO: Registrar en ordenesNuevas
+                        if (!ordenesNuevas[clave]) {
+                            ordenesNuevas[clave] = new Set();
+                        }
+                        ordenesNuevas[clave].add(numeroOrden);
                     }
                     
                     if (!datosConsolidados[sucursal]) {
@@ -507,47 +522,43 @@
                 const mesSeleccionado = document.getElementById('monthInput').value;
                 const datosParaGuardar = [];
                 
-                Object.keys(datosConsolidados).forEach(sucursal => {
-                    Object.keys(datosConsolidados[sucursal]).forEach(proveedor => {
-                        const datos = datosConsolidados[sucursal][proveedor];
-                        
-                        let cumplimiento;
-                        if (typeof datos === 'object' && datos.pedidoTotal !== undefined) {
-                            cumplimiento = datos.pedidoTotal > 0 ? 
-                                Math.round((datos.recibidoTotal / datos.pedidoTotal) * 100) : 0;
-                        } else {
-                            cumplimiento = datos;
-                        }
-                        
-                        // Obtener órdenes procesadas para esta combinación
-                        const clave = `${sucursal}-${proveedor}`;
-                        const ordenes = ordenesProceadas[clave] ? Array.from(ordenesProceadas[clave]) : [];
-                        
-                        // Guardar cada orden como registro separado
-                        if (ordenes.length > 0) {
-                            ordenes.forEach(orden => {
-                                datosParaGuardar.push({
-                                    Sucursal: parseInt(sucursal), // Convertir a número sin ceros
-                                    Proveedor: proveedor,
-                                    Cumplimiento: cumplimiento,
-                                    Mes: mesSeleccionado,
-                                    Usuario: 'Sistema',
-                                    Orden: orden
-                                });
-                            });
-                        } else {
-                            // Si no hay órdenes registradas, guardar sin orden
-                            datosParaGuardar.push({
-                                Sucursal: parseInt(sucursal), // Convertir a número sin ceros
-                                Proveedor: proveedor,
-                                Cumplimiento: cumplimiento,
-                                Mes: mesSeleccionado,
-                                Usuario: 'Sistema',
-                                Orden: null
-                            });
-                        }
+                // NUEVO: Solo guardar las combinaciones que tienen ordenesNuevas
+                Object.keys(ordenesNuevas).forEach(clave => {
+                    const [sucursal, proveedor] = clave.split('-');
+                    const datos = datosConsolidados[sucursal][proveedor];
+                    
+                    let cumplimiento;
+                    if (typeof datos === 'object' && datos.pedidoTotal !== undefined) {
+                        cumplimiento = datos.pedidoTotal > 0 ? 
+                            Math.round((datos.recibidoTotal / datos.pedidoTotal) * 100) : 0;
+                    } else {
+                        cumplimiento = datos;
+                    }
+                    
+                    // Obtener solo las órdenes NUEVAS de esta sesión
+                    const ordenesArray = Array.from(ordenesNuevas[clave]);
+                    
+                    console.log(`💾 Guardando ${sucursal}-${proveedor}:`, ordenesArray);
+                    
+                    // Guardar cada orden como registro separado
+                    ordenesArray.forEach(orden => {
+                        datosParaGuardar.push({
+                            Sucursal: parseInt(sucursal),
+                            Proveedor: proveedor,
+                            Cumplimiento: cumplimiento,
+                            Mes: mesSeleccionado,
+                            Usuario: 'Sistema',
+                            Orden: orden
+                        });
                     });
                 });
+                
+                console.log('📤 Datos a guardar:', datosParaGuardar);
+                
+                if (datosParaGuardar.length === 0) {
+                    console.log('ℹ️ No hay datos nuevos para guardar');
+                    return true;
+                }
                 
                 const formData = new URLSearchParams();
                 formData.append('action', 'save');
@@ -559,9 +570,15 @@
                 });
                 
                 const result = await response.json();
+                console.log('📥 Respuesta del servidor:', result);
+                
+                if (result.success) {
+                    console.log('✅ Datos guardados exitosamente');
+                }
+                
                 return result.success;
             } catch (error) {
-                console.error('Error guardando:', error);
+                console.error('❌ Error guardando:', error);
                 return false;
             }
         }
