@@ -339,33 +339,55 @@
         async function cargarDatosGoogleSheets() {
             try {
                 const mes = document.getElementById('monthInput').value;
+                console.log('📅 Cargando datos para el mes:', mes);
+                console.log('🔗 URL:', `${GOOGLE_SHEETS_URL}?mes=${mes}`);
+                
                 const response = await fetch(`${GOOGLE_SHEETS_URL}?mes=${mes}`);
-                const datos = await response.json();
+                console.log('📡 Response status:', response.status);
+                
+                const responseText = await response.text();
+                console.log('📄 Response text:', responseText);
+                
+                const datos = JSON.parse(responseText);
+                console.log('📊 Datos recibidos:', datos);
+                console.log('📊 Total de registros:', Array.isArray(datos) ? datos.length : 'No es array');
+                
+                if (datos.error) {
+                    console.error('❌ Error del servidor:', datos.error);
+                    alert('⚠️ Error al cargar datos: ' + datos.error);
+                }
                 
                 datosConsolidados = {};
                 SUCURSALES_SISTEMA.forEach(suc => {
                     datosConsolidados[suc] = {};
                 });
                 
-                datos.forEach(fila => {
-                    const sucursal = String(fila.Sucursal).padStart(3, '0');
-                    const proveedor = fila.Proveedor;
-                    const cumplimiento = fila.Cumplimiento;
-                    
-                    if (cumplimiento !== 'RA' && cumplimiento !== 'N/R' && typeof cumplimiento === 'number') {
-                        const pedidoBase = 100;
-                        const recibidoCalculado = Math.round(pedidoBase * cumplimiento / 100);
+                if (Array.isArray(datos)) {
+                    datos.forEach(fila => {
+                        const sucursal = String(fila.Sucursal).padStart(3, '0');
+                        const proveedor = fila.Proveedor;
+                        const cumplimiento = fila.Cumplimiento;
                         
-                        datosConsolidados[sucursal][proveedor] = {
-                            pedidoTotal: pedidoBase,
-                            recibidoTotal: recibidoCalculado
-                        };
-                    }
-                });
+                        console.log(`Procesando: Suc ${sucursal}, Prov ${proveedor}, Cumpl ${cumplimiento}`);
+                        
+                        if (cumplimiento !== 'RA' && cumplimiento !== 'N/R' && typeof cumplimiento === 'number') {
+                            const pedidoBase = 100;
+                            const recibidoCalculado = Math.round(pedidoBase * cumplimiento / 100);
+                            
+                            datosConsolidados[sucursal][proveedor] = {
+                                pedidoTotal: pedidoBase,
+                                recibidoTotal: recibidoCalculado
+                            };
+                        }
+                    });
+                }
+                
+                console.log('✅ Datos consolidados:', datosConsolidados);
                 
                 return true;
             } catch (error) {
-                console.error('Error cargando datos:', error);
+                console.error('❌ Error cargando datos:', error);
+                alert('⚠️ Error de conexión: ' + error.message);
                 SUCURSALES_SISTEMA.forEach(suc => {
                     if (!datosConsolidados[suc]) {
                         datosConsolidados[suc] = {};
