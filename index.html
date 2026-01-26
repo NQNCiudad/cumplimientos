@@ -1041,16 +1041,42 @@ PROVEEDORES.forEach((proveedor, index) => {
             }
         }
 
-        function limpiarConClave() {
+        async function limpiarConClave() {
             const clave = prompt('🔐 Contraseña de administrador:');
             if (clave === 'admin2026') {
-                if (confirm('¿Limpiar todos los datos del mes actual?')) {
-                    datosConsolidados = {};
-                    SUCURSALES_SISTEMA.forEach(suc => {
-                        datosConsolidados[suc] = {};
-                    });
-                    generarTabla();
-                    alert('✅ Datos locales limpiados');
+                const mesSeleccionado = document.getElementById('monthInput').value;
+                if (confirm(`¿Limpiar todos los datos del mes ${mesSeleccionado}?\n\n⚠️ ESTA ACCIÓN NO SE PUEDE DESHACER`)) {
+                    try {
+                        // Limpiar datos locales
+                        datosConsolidados = {};
+                        SUCURSALES_SISTEMA.forEach(suc => {
+                            datosConsolidados[suc] = {};
+                        });
+                        
+                        // Limpiar en Google Sheets
+                        const formData = new URLSearchParams();
+                        formData.append('action', 'delete_month');
+                        formData.append('mes', mesSeleccionado);
+                        
+                        const response = await fetch(GOOGLE_SHEETS_URL, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            alert(`✅ Todos los datos del mes ${mesSeleccionado} han sido eliminados exitosamente`);
+                            generarTabla();
+                        } else {
+                            alert('⚠️ Datos locales limpiados, pero hubo un error al limpiar Google Sheets');
+                            generarTabla();
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('⚠️ Datos locales limpiados, pero hubo un error de conexión con Google Sheets');
+                        generarTabla();
+                    }
                 }
             } else if (clave !== null) {
                 alert('❌ Contraseña incorrecta');
