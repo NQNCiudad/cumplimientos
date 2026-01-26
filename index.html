@@ -133,11 +133,50 @@
                     📊 Cumplimiento por Proveedor
                 </h3>
                 <div id="proveedoresCards" style="
-                    display: grid; 
-                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
                     gap: 15px;
                     margin-bottom: 30px;
+                    flex-wrap: wrap;
                 "></div>
+                
+                <div style="
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 25px;
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    flex-wrap: wrap;
+                ">
+                    <div style="font-weight: bold; color: #2c3e50; font-size: 1em;">
+                        📊 Leyenda:
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #d4edda; border-radius: 4px; border: 2px solid #155724;"></div>
+                        <span style="color: #2c3e50; font-size: 0.9em;"><strong>90-100%</strong> Excelente</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #fff3cd; border-radius: 4px; border: 2px solid #856404;"></div>
+                        <span style="color: #2c3e50; font-size: 0.9em;"><strong>75-89%</strong> Bueno</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #f8d7da; border-radius: 4px; border: 2px solid #721c24;"></div>
+                        <span style="color: #2c3e50; font-size: 0.9em;"><strong>0-74%</strong> Regular</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #e3f2fd; border-radius: 4px; border: 2px solid #1565c0;"></div>
+                        <span style="color: #2c3e50; font-size: 0.9em;"><strong>RA</strong> Reposición Asistida</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 20px; height: 20px; background: #f5f5f5; border-radius: 4px; border: 2px solid #9e9e9e;"></div>
+                        <span style="color: #2c3e50; font-size: 0.9em;"><strong>N/R</strong> No Recibe</span>
+                    </div>
+                </div>
             </div>
             
             <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -582,20 +621,21 @@
                 card.style.cssText = `
                     background: ${colorFondo};
                     color: ${colorTexto};
-                    padding: 20px;
+                    padding: 20px 30px;
                     border-radius: 12px;
                     text-align: center;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
                     transition: all 0.3s ease;
                     cursor: pointer;
                     border: 2px solid ${colorTexto}20;
+                    min-width: 140px;
                 `;
                 
                 card.innerHTML = `
-                    <div style="font-size: 0.9em; font-weight: 600; margin-bottom: 8px; opacity: 0.8;">
+                    <div style="font-size: 0.85em; font-weight: 600; margin-bottom: 8px; opacity: 0.8;">
                         ${proveedor}
                     </div>
-                    <div style="font-size: 2.5em; font-weight: bold;">
+                    <div style="font-size: 2.2em; font-weight: bold;">
                         ${cumplimiento}%
                     </div>
                 `;
@@ -840,7 +880,40 @@ PROVEEDORES.forEach((proveedor, index) => {
     doc.text(cumplimiento + '%', x + boxWidth/2, boxY + 18, { align: 'center' });
 });
     
-    // Preparar datos para la tabla
+    // Agregar leyenda de semaforización debajo de los cuadrados
+    const leyendaY = boxY + boxHeight + 8;
+    const leyendaItems = [
+        { color: [212, 237, 218], textColor: [21, 87, 36], label: '90-100% Excelente' },
+        { color: [255, 243, 205], textColor: [133, 100, 4], label: '75-89% Bueno' },
+        { color: [248, 215, 218], textColor: [114, 28, 36], label: '0-74% Regular' },
+        { color: [227, 242, 253], textColor: [21, 101, 192], label: 'RA Reposición Asistida' },
+        { color: [245, 245, 245], textColor: [158, 158, 158], label: 'N/R No Recibe' }
+    ];
+    
+    const boxSize = 5;
+    const itemSpacing = 38;
+    const startXLeyenda = 45; // Centrado aproximado
+    
+    leyendaItems.forEach((item, index) => {
+        const x = startXLeyenda + (index * itemSpacing);
+        
+        // Dibujar cuadrado de color
+        doc.setFillColor(item.color[0], item.color[1], item.color[2]);
+        doc.rect(x, leyendaY, boxSize, boxSize, 'F');
+        
+        // Dibujar borde
+        doc.setDrawColor(item.textColor[0], item.textColor[1], item.textColor[2]);
+        doc.setLineWidth(0.3);
+        doc.rect(x, leyendaY, boxSize, boxSize, 'S');
+        
+        // Texto
+        doc.setFontSize(7);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(60, 60, 60);
+        doc.text(item.label, x + boxSize + 2, leyendaY + 3.5);
+    });
+    
+    // Preparar datos para la tabla (ahora empieza más abajo)
     const headers = [['Sucursal', 'CCU', 'QUILMES', 'COCA COLA', 'DANONE', 'MASTELLONE']];
     const rows = [];
     
@@ -865,11 +938,11 @@ PROVEEDORES.forEach((proveedor, index) => {
         rows.push(fila);
     });
     
-    // Generar tabla (empieza más abajo para dar espacio a los cuadrados)
+    // Generar tabla (empieza más abajo para dar espacio a los cuadrados y la leyenda)
     doc.autoTable({
         head: headers,
         body: rows,
-        startY: 60,
+        startY: 66,
         theme: 'grid',
         headStyles: {
             fillColor: [102, 126, 234],
